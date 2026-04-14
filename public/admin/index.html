@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Drop2Wave Admin Home</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="../assets/logo.jpeg">
+    <link href="../frontend/css/style.css" rel="stylesheet">
+    <link href="../frontend/css/admin-theme.css" rel="stylesheet">
+    <link href="../frontend/css/admin-pages.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid admin-shell">
+        <div class="admin-layout">
+            <aside class="side-nav">
+                <div class="side-nav-inner">
+                    <div class="side-top side-logo-wrap">
+                        <img src="../assets/logo.jpeg" alt="Drop2Wave" class="side-logo">
+                        <button type="button" class="sidebar-toggle d-none d-lg-inline-flex" id="sidebarToggle" aria-label="Collapse sidebar">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                    </div>
+
+                    <div class="profile-card">
+                        <div class="profile-avatar">A</div>
+                        <div class="profile-text">
+                            <div class="profile-name">Admin Super Admin</div>
+                            <div class="profile-role">super-admin</div>
+                        </div>
+                    </div>
+
+                    <div class="side-scroll">
+                        <ul class="nav flex-column">
+                            <li class="nav-item"><a class="nav-link active" href="index.html"><i class="fas fa-columns nav-icon"></i><span class="nav-label">Dashboard</span></a></li>
+                            <li class="nav-item"><a class="nav-link" href="categories.html"><i class="fas fa-th-large nav-icon"></i><span class="nav-label">Categories</span></a></li>
+                            <li class="nav-item"><a class="nav-link" href="products.html"><i class="fas fa-box-open nav-icon"></i><span class="nav-label">Products</span></a></li>
+                            <li class="nav-item"><a class="nav-link" href="reviews.html"><i class="fas fa-star nav-icon"></i><span class="nav-label">Reviews</span></a></li>
+                            <li class="nav-item"><a class="nav-link" href="orders.html"><i class="fas fa-shopping-bag nav-icon"></i><span class="nav-label">Orders</span></a></li>
+                        </ul>
+                    </div>
+
+                    <div class="side-actions">
+                        <a href="../index.html" class="btn btn-sm btn-outline-light btn-block mb-2"><i class="fas fa-globe"></i> <span class="nav-label">View Website</span></a>
+                        <button type="button" class="btn btn-sm btn-light btn-block" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> <span class="nav-label">Logout</span></button>
+                    </div>
+                </div>
+            </aside>
+
+            <main class="main-panel">
+                <h4 class="mb-1">Dashboard</h4>
+                <p class="muted mb-4">Track your current uploads and jump to separate management pages.</p>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="stat-card">
+                            <div class="muted">Total Categories</div>
+                            <div class="stat-value" id="statCategories">0</div>
+                            <div class="muted">Active: <span id="statActiveCategories">0</span></div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="stat-card">
+                            <div class="muted">Total Products</div>
+                            <div class="stat-value" id="statProducts">0</div>
+                            <div class="muted">Active: <span id="statActiveProducts">0</span></div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="stat-card">
+                            <div class="muted">Total Orders</div>
+                            <div class="stat-value" id="statOrders">0</div>
+                            <div class="muted">View all orders</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mt-2">
+                    <div class="col-md-4 mb-3">
+                        <div class="stat-card">
+                            <div class="muted">New Products</div>
+                            <div class="stat-value" id="statNewProducts">0</div>
+                            <div class="muted">Homepage new-products section</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="stat-card">
+                            <div class="muted">Pending Orders</div>
+                            <div class="stat-value" id="statPendingOrders">0</div>
+                            <div class="muted">Need processing</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="stat-card">
+                            <div class="muted">Delivered</div>
+                            <div class="stat-value" id="statDeliveredOrders">0</div>
+                            <div class="muted">Successfully completed</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mt-2">
+                    <div class="col-md-4 mb-3">
+                        <div class="stat-card">
+                            <h6>Category Management</h6>
+                            <p class="muted mb-3">Add, edit, sort and remove categories from a dedicated page.</p>
+                            <a href="products/categories.html" class="btn btn-primary btn-sm">Go To Categories</a>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="stat-card">
+                            <h6>Product Management</h6>
+                            <p class="muted mb-3">Upload products, set prices, assign category and control visibility.</p>
+                            <a href="products/manage.html" class="btn btn-primary btn-sm">Go To Products</a>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="stat-card">
+                            <h6><i class="fas fa-star"></i> Reviews</h6>
+                            <p class="muted mb-3">Approve customer reviews and publish admin-created product reviews.</p>
+                            <a href="reviews.html" class="btn btn-warning btn-sm"><i class="fas fa-comments"></i> Manage Reviews</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mt-2">
+                    <div class="col-md-12 mb-3">
+                        <div class="stat-card">
+                            <h6><i class="fas fa-shopping-bag"></i> Order Management</h6>
+                            <p class="muted mb-3">View all customer orders, update order status, and track delivery. See customer information, ordered items, pricing details, and payment status.</p>
+                            <a href="orders.html" class="btn btn-success btn-sm"><i class="fas fa-eye"></i> Manage Orders</a>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="../frontend/lib/jquery/3.4.1/jquery.min.js"></script>
+    <script src="../frontend/js/admin-store.js"></script>
+    <script src="../frontend/js/checkout.js"></script>
+    <script src="../frontend/js/admin-shell.js"></script>
+    <script src="../frontend/js/admin-dashboard.js"></script>
+</body>
+</html>

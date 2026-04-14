@@ -1,0 +1,83 @@
+﻿
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Login - Drop2Wave</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="../assets/logo.jpeg">
+    <link href="../frontend/css/style.css" rel="stylesheet">
+    <style>
+        body {
+            min-height: 100vh;
+            margin: 0;
+            font-family: "Poppins", sans-serif;
+            background: radial-gradient(circle at 20% 20%, #ffd5be 0%, #f85606 38%, #121827 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 460px;
+            border-radius: 16px;
+            border: 0;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.26);
+            overflow: hidden;
+        }
+
+        .login-head {
+            background: #111827;
+            color: #fff;
+            padding: 18px;
+            text-align: center;
+        }
+
+        .login-body {
+            background: #fff;
+            padding: 24px;
+        }
+
+        .tiny {
+            font-size: 12px;
+            color: #6b7280;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card login-card">
+        <div class="login-head">
+            <h4 class="mb-0">Admin Login</h4>
+            <small>Only authorized admins can access the dashboard.</small>
+        </div>
+        <div class="login-body">
+            <div id="statusMessage" class="alert d-none" role="alert"></div>
+            <form id="adminLoginForm">
+                <div class="form-group">
+                    <label for="adminEmail">Email</label>
+                    <input type="email" class="form-control" id="adminEmail" placeholder="admin@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="adminPassword">Password</label>
+                    <input type="password" class="form-control" id="adminPassword" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block" id="loginBtn">Login To Dashboard</button>
+            </form>
+            <p class="tiny mt-3 mb-0">Local mode: login works in this browser only (no server needed).</p>
+            <a href="../index.html" class="btn btn-link btn-sm pl-0 mt-2">Back to website</a>
+        </div>
+    </div>
+
+    <script src="../frontend/lib/jquery/3.4.1/jquery.min.js"></script>
+    <script src="../frontend/js/admin-store.js"></script>
+    <script src="../frontend/js/admin-login.js"></script>
+</body>
+
+</html>

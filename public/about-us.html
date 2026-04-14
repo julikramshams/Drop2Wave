@@ -1,0 +1,347 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About Us - Drop2Wave</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+  <link rel="icon" type="image/x-icon" href="assets/logo.jpeg">
+  <link href="frontend/css/style.css" rel="stylesheet">
+  <style>
+    body { background:#f7f9fc; font-family:'Poppins',sans-serif; }
+    .topbar { background:#ececec; }
+    .top-inner { max-width:1220px; margin:0 auto; padding:12px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .top-inner img { width:170px; }
+    .top-links a { margin-left:8px; }
+    .page-shell { max-width:1100px; margin:24px auto; padding:0 12px; }
+    .about-hero {
+      background: linear-gradient(145deg, #fff 0%, #fff8f2 55%, #fff 100%);
+      border: 1px solid #ffd5b8;
+      border-radius: 18px;
+      box-shadow: 0 14px 30px rgba(248, 86, 6, 0.12);
+      padding: 26px;
+      margin-bottom: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+    .about-hero::after {
+      content: "";
+      position: absolute;
+      width: 260px;
+      height: 260px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(248,86,6,0.16) 0%, rgba(248,86,6,0) 68%);
+      right: -80px;
+      top: -100px;
+      pointer-events: none;
+    }
+    .about-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #fff;
+      border: 1px solid #ffd5b8;
+      color: #d24700;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      margin-bottom: 12px;
+    }
+    .about-hero h1 {
+      font-size: 40px;
+      line-height: 1.15;
+      font-weight: 800;
+      margin-bottom: 12px;
+      color: #111827;
+    }
+    .about-hero p {
+      font-size: 18px;
+      line-height: 1.7;
+      color: #374151;
+      margin-bottom: 0;
+      max-width: 900px;
+    }
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1.25fr 1fr;
+      gap: 16px;
+    }
+    .about-card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: 0 10px 24px rgba(15,23,42,.06);
+      height: 100%;
+    }
+    .about-card h3 {
+      font-size: 24px;
+      font-weight: 800;
+      margin-bottom: 14px;
+      color: #111827;
+    }
+    .about-card p {
+      font-size: 16px;
+      color: #1f2937;
+      line-height: 1.75;
+      margin-bottom: 0;
+    }
+    .feature-list { list-style: none; padding: 0; margin: 0; }
+    .feature-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 16px;
+      color: #1f2937;
+      line-height: 1.65;
+      margin-bottom: 11px;
+    }
+    .feature-list li i { color: #f85606; margin-top: 4px; }
+    .about-subgrid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .mini-card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 10px 24px rgba(15,23,42,.06);
+    }
+    .mini-card h4 {
+      font-size: 21px;
+      font-weight: 800;
+      margin-bottom: 12px;
+      color: #111827;
+    }
+    .mini-card p,
+    .mini-card li {
+      font-size: 16px;
+      line-height: 1.7;
+      color: #1f2937;
+      margin-bottom: 0;
+    }
+    .contact-list { list-style: none; padding: 0; margin: 0; }
+    .contact-list li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+    .contact-list li i { color: #f85606; margin-top: 4px; width: 18px; }
+    .d2w-footer { background: linear-gradient(135deg, #ffe9d5 0%, #fff7f0 45%, #f0f7ff 100%); border-top: 2px solid #f85606; color:#2f3650; }
+    .d2w-footer-logo { width:220px; max-width:100%; }
+    .d2w-contact-card { background:#fff; border:1px solid #eecfb8; border-radius:10px; padding:12px; font-size:17px; font-weight:500; line-height:1.6; }
+    .d2w-foot-title { font-size:23px; font-weight:700; margin-bottom:14px; color:#2f3650; }
+    .d2w-foot-links { list-style:none; padding:0; margin:0; }
+    .d2w-foot-links li { margin-bottom:8px; }
+    .d2w-foot-links a { color:#2f3650; text-decoration:none; font-size:16px; font-weight:500; }
+    .d2w-foot-links a:hover { color:#f85606; }
+    .d2w-socials a { display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:50%; margin-right:8px; color:#fff; background:#f85606; text-decoration:none; }
+    .d2w-socials a:hover { background:#de4a00; }
+    .d2w-page-widget { border-radius:10px; overflow:hidden; border:1px solid #eecfb8; background:#fff; min-height:300px; }
+    .d2w-pay-wrap { background:#fff; border-radius:10px; border:1px solid #eecfb8; padding:10px; }
+    .d2w-copy { color:#2f3650; font-weight:500; font-size:15px; }
+
+    #marqureetext { display: none; }
+    .d2w-top-ticker {
+      --ticker-duration: 26s;
+      width: 100%;
+      overflow: hidden;
+      white-space: nowrap;
+      color: #fff;
+      line-height: 1.45;
+      font-size: 17px;
+      font-weight: 400;
+    }
+    .d2w-top-ticker-track {
+      display: inline-flex;
+      align-items: center;
+      min-width: max-content;
+      animation: d2wTopTicker var(--ticker-duration) linear infinite;
+      will-change: transform;
+    }
+    .d2w-top-ticker-track span { display: inline-block; padding-right: 48px; }
+    #marqureetext .d2w-top-ticker { --ticker-duration: 18s; }
+    @keyframes d2wTopTicker {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
+
+    @media only screen and (max-width: 768px) {
+      #marqureetext {
+        display: inline;
+        position: fixed;
+        z-index: 9999;
+        top: 0;
+        left: 0;
+        right: 0;
+      }
+      #sociallink { display: none; }
+      body { padding-top: 30px; }
+      .about-hero { padding: 18px; }
+      .about-hero h1 { font-size: 32px; }
+      .about-hero p { font-size: 16px; }
+      .about-grid { grid-template-columns: 1fr; }
+      .about-subgrid { grid-template-columns: 1fr; }
+      .about-card,
+      .mini-card { padding: 16px; }
+      .d2w-top-ticker { font-size: 14px; line-height: 1.35; }
+      .d2w-top-ticker-track span { padding-right: 30px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid">
+    <div id="sociallink">
+      <div class="row bg-primary py-2 px-xl-5" style="padding-bottom: 0px !important;">
+        <div class="col-lg-10 d-none d-lg-block">
+          <div class="row bg-primary px-xl-5">
+            <div class="col-12">
+              <div class="d2w-top-ticker">
+                <div class="d2w-top-ticker-track">
+                  <span>Drop2Wave বাংলাদেশের একটি অনলাইন ই-কমার্স প্ল্যাটফর্ম, যেখানে মানসম্মত পণ্য, সাশ্রয়ী দাম এবং নির্ভরযোগ্য সেবা পাওয়া যায়। +880 1843912510</span>
+                  <span aria-hidden="true">Drop2Wave বাংলাদেশের একটি অনলাইন ই-কমার্স প্ল্যাটফর্ম, যেখানে মানসম্মত পণ্য, সাশ্রয়ী দাম এবং নির্ভরযোগ্য সেবা পাওয়া যায়। +880 1843912510</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="marqureetext">
+      <div class="row bg-primary px-xl-5">
+        <div class="col-12">
+          <div class="d2w-top-ticker">
+            <div class="d2w-top-ticker-track">
+              <span>Drop2Wave বাংলাদেশের একটি অনলাইন ই-কমার্স প্ল্যাটফর্ম, যেখানে মানসম্মত পণ্য, সাশ্রয়ী দাম এবং নির্ভরযোগ্য সেবা পাওয়া যায়। +880 1843912510</span>
+              <span aria-hidden="true">Drop2Wave বাংলাদেশের একটি অনলাইন ই-কমার্স প্ল্যাটফর্ম, যেখানে মানসম্মত পণ্য, সাশ্রয়ী দাম এবং নির্ভরযোগ্য সেবা পাওয়া যায়। +880 1843912510</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row align-items-center px-xl-5 py-2" style="background:#fff;">
+      <div class="col-lg-3 col-12 text-center text-lg-left mb-2 mb-lg-0">
+        <a href="index.html" class="text-decoration-none">
+          <img style="width: 170px;" src="assets/logo_rectangle.jpeg" alt="Drop2Wave">
+        </a>
+      </div>
+      <div class="col-lg-6 col-9 text-left" style="padding-right:0;">
+        <form action="#" method="GET">
+          <div class="input-group">
+            <input type="text" name="search" id="search" class="form-control" placeholder="Search for products" style="border-radius: 4px 0px 0px 4px;">
+            <div class="input-group-append">
+              <button type="submit" class="input-group-text bg-primary text-light">
+                <i class="fa fa-search"></i>
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="col-lg-3 col-3 text-right d-none d-lg-block">
+        <a href="checkout.html" class="btn border">
+          <i class="fas fa-shopping-cart text-primary"></i>
+          <sup>0</sup>
+          <span class="badge" id="mobilehide" style="display: none"> - ৳ 0</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <main class="page-shell">
+    <section class="about-hero">
+      <span class="about-badge"><i class="fas fa-bolt"></i> About Drop2Wave</span>
+      <h1>About Drop2Wave</h1>
+      <p>Drop2Wave is your one-stop online destination for trendy gadgets and everyday lifestyle essentials in Bangladesh. We aim to make your daily life easier by offering smart, useful, and affordable products all in one place.</p>
+    </section>
+
+    <section class="about-grid">
+      <article class="about-card">
+        <h3>What We Do</h3>
+        <p>From innovative tech gadgets to practical home essentials and stylish lifestyle items, we carefully select products that add real value to your life. Our goal is simple: to bring you quality products at prices that make sense.</p>
+      </article>
+
+      <article class="about-card">
+        <h3>Why Choose Drop2Wave?</h3>
+        <ul class="feature-list">
+          <li><i class="fas fa-check-circle"></i><span>Nationwide Cash on Delivery (COD)</span></li>
+          <li><i class="fas fa-check-circle"></i><span>Wide range of categories including gadgets, home essentials, and lifestyle products</span></li>
+          <li><i class="fas fa-check-circle"></i><span>Affordable pricing without compromising quality</span></li>
+          <li><i class="fas fa-check-circle"></i><span>Simple and hassle-free ordering experience</span></li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="about-subgrid">
+      <article class="mini-card">
+        <h4>Our Mission</h4>
+        <p>To provide practical, innovative, and affordable products that improve everyday living for our customers.</p>
+      </article>
+
+      <article class="mini-card">
+        <h4>Contact Us</h4>
+        <ul class="contact-list">
+          <li><i class="fas fa-phone-alt"></i><span><strong>Phone / WhatsApp:</strong> +880 1843912510</span></li>
+          <li><i class="fas fa-map-marker-alt"></i><span><strong>Location:</strong> Dhaka, Bangladesh</span></li>
+          <li><i class="fas fa-globe"></i><span><strong>Website:</strong> Drop2Wave</span></li>
+        </ul>
+      </article>
+    </section>
+  </main>
+
+  <footer class="d2w-footer mt-3">
+    <div class="container-fluid px-xl-5 py-4">
+      <div class="row">
+        <div class="col-lg-4 mb-4 mb-lg-0">
+          <img src="assets/logo_rectangle.jpeg" alt="Drop2Wave" class="d2w-footer-logo mb-3">
+          <div class="d2w-contact-card">
+            <p class="mb-2">Mohammadpur, Dhaka - 1207</p>
+            <p class="mb-2"><strong>E-mail:</strong> drop2wave.bd@gmail.com</p>
+            <p class="mb-0"><strong>Hotline:</strong> +880 1843912510</p>
+          </div>
+          <h6 class="d2w-foot-title mt-4">FOLLOW US ON:</h6>
+          <div class="d2w-socials">
+            <a href="https://www.facebook.com/profile.php?id=61582218376925" target="_blank" rel="noopener" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+            <a href="404.html" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+            <a href="404.html" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+          </div>
+        </div>
+
+        <div class="col-sm-6 col-lg-5 mb-4 mb-lg-0">
+          <h5 class="d2w-foot-title">Useful Links</h5>
+          <ul class="d2w-foot-links">
+            <li><a href="about-us.html">About Us</a></li>
+            <li><a href="privacy-policy.html">Privacy Policy</a></li>
+            <li><a href="return-replacement-policy.html">Return &amp; Replacement Policy</a></li>
+            <li><a href="faq.html">FAQ</a></li>
+            <li><a href="terms-and-conditions.html">Terms &amp; Conditions</a></li>
+          </ul>
+        </div>
+
+        <div class="col-lg-3">
+          <h5 class="d2w-foot-title">Follow Page</h5>
+          <div class="d2w-page-widget">
+            <iframe title="facebook-page"
+              src="https://www.facebook.com/plugins/page.php?href=https%3A%2F%2Fwww.facebook.com%2Fprofile.php%3Fid%3D61582218376925&tabs=timeline&width=260&height=290&small_header=true&adapt_container_width=true&hide_cover=false&show_facepile=true&appId"
+              width="100%" height="300" style="border:none;overflow:hidden" scrolling="no"
+              frameborder="0" allowfullscreen="true"
+              allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>
+          </div>
+        </div>
+      </div>
+
+      <div class="d2w-pay-wrap mt-3">
+        <img src="assets/SSL03.webp" alt="Payment Partners" class="img-fluid">
+      </div>
+
+      <div class="text-center pt-3">
+        <p class="mb-0 d2w-copy">&copy; 2026 Drop2Wave</p>
+      </div>
+    </div>
+  </footer>
+  <script src="frontend/js/clean-url.js"></script>
+</body>
+</html>

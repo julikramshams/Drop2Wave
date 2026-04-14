@@ -1,0 +1,41 @@
+{
+  "categories": [
+    {
+      "id": "cat_kitchen",
+      "name": "Kitchen Item",
+      "slug": "kitchen-item",
+      "image": "",
+      "description": "",
+      "isActive": true,
+      "sortOrder": 1
+    },
+    {
+      "id": "cat_crossbody",
+      "name": "Crossbody Fashion Bag",
+      "slug": "crossbody-fashion-bag",
+      "image": "",
+      "description": "",
+      "isActive": true,
+      "sortOrder": 2
+    },
+    {
+      "id": "cat_islamic",
+      "name": "Islamic Item",
+      "slug": "islamic-item",
+      "image": "",
+      "description": "",
+      "isActive": true,
+      "sortOrder": 3
+    },
+    {
+      "id": "cat_hot",
+      "name": "Hot Offer",
+      "slug": "hot-offer",
+      "image": "",
+      "description": "",
+      "isActive": true,
+      "sortOrder": 4
+    }
+  ],
+  "products": []
+}

@@ -1,0 +1,582 @@
+﻿
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />-->
+    <title>Drop2Wave</title>
+    <meta name="description" content="Title" />
+    <meta property="og:url" content="index.html" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Drop2Wave" />
+    <meta property="og:description" content="Title" />
+    <meta property="og:image" content="assets/logo_rectangle.jpeg" />
+
+    
+    <!-- Google Web Fonts -->
+<link rel="preconnect" href="https://fonts.gstatic.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<!-- Font Awesome -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+
+<!-- favicon -->
+<link rel="icon" type="image/x-icon" href="assets/logo.jpeg">
+
+<!-- Libraries Stylesheet -->
+<link href="frontend/lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet">
+
+<!-- Customized Bootstrap Stylesheet -->
+<link href="frontend/css/style.css" rel="stylesheet">
+<script src="frontend/lib/jquery/3.4.1/jquery.min.js"></script>
+    
+        
+
+    <style>
+        /* mobile menu */
+        body.modal-open {
+            height: 100vh;
+            overflow-y: hidden;
+        }
+
+        .sidenav {
+            height: 100%;
+            width: 0;
+            position: fixed;
+            z-index: 100;
+            top: 25px;
+            left: 0;
+            /* background-color: #111; */
+            overflow-x: hidden;
+            transition: 0.5s;
+            padding-top: 60px;
+        }
+
+        .sidenav a {
+            padding: 8px 8px 8px 32px;
+            text-decoration: none;
+            font-size: 25px;
+            color: #818181;
+            display: block;
+            transition: 0.3s;
+        }
+
+        .sidenav a:hover {
+            color: #f1f1f1;
+        }
+
+        .sidenav .closebtn {
+            position: absolute;
+            top: 0;
+            right: 6px;
+            font-size: 36px;
+            margin-left: 50px;
+            color: black
+        }
+
+        @media  screen and (max-height: 450px) {
+            .sidenav {
+                padding-top: 15px;
+            }
+
+            .sidenav a {
+                font-size: 18px;
+            }
+        }
+
+        .d2w-top-ticker {
+            --ticker-duration: 26s;
+            width: 100%;
+            overflow: hidden;
+            white-space: nowrap;
+            color: #fff;
+            line-height: 1.45;
+            font-size: 17px;
+            font-weight: 400;
+        }
+
+        .d2w-top-ticker-track {
+            display: inline-flex;
+            align-items: center;
+            min-width: max-content;
+            animation: d2wTopTicker var(--ticker-duration) linear infinite;
+            will-change: transform;
+        }
+
+        .d2w-top-ticker-track span {
+            display: inline-block;
+            padding-right: 48px;
+        }
+
+        @keyframes d2wTopTicker {
+            0% {
+                transform: translateX(0);
+            }
+
+            100% {
+                transform: translateX(-50%);
+            }
+        }
+    </style>
+        <meta name="facebook-domain-verification" content="wtm4w0j5fpgygqn8val3co9vzozz9k" />
+        <meta name="google-site-verification" content="oyalFZU-2dCgisvwRzYD_R40dByqwiBjyF2BAJzCny0" />
+
+<script type="text/javascript">(function() {    var rootScript = 'https://cdn.jsdelivr.net/npm/@flasher/flasher@1.1.1/dist/flasher.min.js';    var FLASHER_FLASH_BAG_PLACE_HOLDER = {};    var options = mergeOptions([], FLASHER_FLASH_BAG_PLACE_HOLDER);    function mergeOptions(first, second) {        return {            context: merge(first.context || {}, second.context || {}),            envelopes: merge(first.envelopes || [], second.envelopes || []),            options: merge(first.options || {}, second.options || {}),            scripts: merge(first.scripts || [], second.scripts || []),            styles: merge(first.styles || [], second.styles || []),        };    }    function merge(first, second) {        if (Array.isArray(first) && Array.isArray(second)) {            return first.concat(second).filter(function(item, index, array) {                return array.indexOf(item) === index;            });        }        return Object.assign({}, first, second);    }    function renderOptions(options) {        if(!window.hasOwnProperty('flasher')) {            console.error('Flasher is not loaded');            return;        }        window.flasher.render(options);    }    function render(options) {        if ('loading' !== document.readyState) {            renderOptions(options);            return;        }        document.addEventListener('DOMContentLoaded', function() {            renderOptions(options);        });    }    document.addEventListener('flasher:render', function (event) {        render(event.detail);    });    if (window.hasOwnProperty('flasher') || !rootScript || document.querySelector('script[src="' + rootScript + '"]')) {        render(options);    } else {        var tag = document.createElement('script');        tag.setAttribute('src', rootScript);        tag.setAttribute('type', 'text/javascript');        tag.onload = function () {            render(options);        };        document.head.appendChild(tag);    }})();</script>
+
+
+<body>
+    <!-- Topbar Start -->
+    <div class="container-fluid">
+    <div id="sociallink">
+        <div class="row bg-primary py-2 px-xl-5" style="padding-bottom: 0px !important;">
+            <!--<div class="col-lg-3 d-none d-lg-block">-->
+            <!--    <div class="d-inline-flex align-items-center">-->
+            <!--        <a class="text-light" href="tel:+880 1843912510"> <i class="fas fa-phone-alt"></i>-->
+            <!--            +880 1843912510</a>-->
+            <!--    </div>-->
+            <!--</div>-->
+            <div class="col-lg-10 d-none d-lg-block">
+                <div id="">
+                    <div class="row bg-primary px-xl-5">
+                        <div class="col-12">
+                            <div class="d2w-top-ticker">
+                                <div class="d2w-top-ticker-track">
+                                    <span>Drop2Wave বাংলাদেশের একটি অনলাইন ই-কমার্স প্ল্যাটফর্ম, যেখানে মানসম্মত পণ্য, সাশ্রয়ী দাম এবং নির্ভরযোগ্য সেবা পাওয়া যায়। +880 1843912510</span>
+                                    <span aria-hidden="true">Drop2Wave বাংলাদেশের একটি অনলাইন ই-কমার্স প্ল্যাটফর্ম, যেখানে মানসম্মত পণ্য, সাশ্রয়ী দাম এবং নির্ভরযোগ্য সেবা পাওয়া যায়। +880 1843912510</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--<div class="col-lg-2 text-center text-lg-right">-->
+            <!--    <div class="d-inline-flex align-items-center">-->
+            <!--        <a class="text-light px-2" href="tesy">-->
+            <!--            <i class="fab fa-facebook-f"></i>-->
+            <!--        </a>-->
+            <!--        <a class="text-light px-2" href="test">-->
+            <!--            <i class="fab fa-twitter"></i>-->
+            <!--        </a>-->
+            <!--        <a class="text-light px-2" href="">-->
+            <!--            <i class="fab fa-linkedin-in"></i>-->
+            <!--        </a>-->
+            <!--        <a class="text-light px-2" href="test">-->
+            <!--            <i class="fab fa-instagram"></i>-->
+            <!--        </a>-->
+            <!--    </div>-->
+            <!--</div>-->
+        </div>
+    </div>
+
+    <div id="marqureetext">
+        <div class="row bg-primary px-xl-5">
+            <div class="col-12">
+                <div class="d2w-top-ticker">
+                        <div class="d2w-top-ticker-track">
+                            <span>Drop2Wave বাংলাদেশের একটি অনলাইন ই-কমার্স প্ল্যাটফর্ম, যেখানে মানসম্মত পণ্য, সাশ্রয়ী দাম এবং নির্ভরযোগ্য সেবা পাওয়া যায়। +880 1843912510</span>
+                            <span aria-hidden="true">Drop2Wave বাংলাদেশের একটি অনলাইন ই-কমার্স প্ল্যাটফর্ম, যেখানে মানসম্মত পণ্য, সাশ্রয়ী দাম এবং নির্ভরযোগ্য সেবা পাওয়া যায়। +880 1843912510</span>
+                        </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row align-items-center px-xl-5" id="adjinmobile">
+        <div class="col-lg-3 d-none d-lg-block">
+            <a href="index.html" class="text-decoration-none">
+                <img style="width: 170px;" src="assets/logo_rectangle.jpeg" alt="Drop2Wave" />
+            </a>
+        </div>
+        <div class="col-lg-6 col-9 text-left  d-none d-lg-block" style="padding-right: 0;">
+            <form action="#" method="GET">
+                <div class="input-group">
+                    <input type="text" name="search" id="search" class="form-control"
+                        placeholder="Search for products" style="border-radius: 4px 0px 0px 4px;">
+                    <div class="input-group-append">
+                        <button type="submit" class="input-group-text bg-primary text-light">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="col-lg-3 col-3 text-right  d-none d-lg-block">
+            <a href="checkout.html" class="btn border">
+                <i class="fas fa-shopping-cart text-primary"></i>
+                <sup>1</sup>
+                    <span class="badge" id="mobilehide" style="display: none"> - ৳ 890</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="row align-items-center px-xl-5" id="adjinmobile">
+        <div class="col-lg-9 d-lg-none">
+        <nav class="navbar navbar-expand-lg bg-light navbar-light py-lg-0 px-0" style="padding: 4px 0px 0px !important;">
+            <a href="index.html" class="text-decoration-none d-block d-lg-none">
+                <img style="width: 170px;max-height:60px;" src="assets/logo_rectangle.jpeg" alt="Drop2Wave" />
+            </a> 
+            <!-- <div class="d-block d-lg-none mb-1">-->
+            <!--    <a href="checkout.html" class="btn border" style="border: none !important;display: flex;padding: 14px;padding-bottom: 8px;">-->
+            <!--        <i class="fas fa-shopping-cart text-primary"></i>-->
+            <!--        <sup>1</sup>-->
+            <!--        <span class="badge" id="mobilehide" style="display: none"> - ৳ 890</span>-->
+            <!--    </a>-->
+            <!--</div>-->
+            <div class="d-none">
+                <a href="admin/login.html" class="btn">
+                    <i class="fas fa-user text-primary"></i> 
+                </a>
+            </div>
+            
+            <span class="d-lg-none" style="font-size:30px;cursor:pointer" onclick="openNav()">&#9776; </span>
+
+            <div id="mySidenav" class="sidenav bg-primary">
+                <a href="index.html" class="text-decoration-none d-block d-lg-none">
+                    <img style="width: 170px;background: white;border-radius: 6px;" src="assets/logo_rectangle.jpeg" alt="Drop2Wave" />
+                </a>
+                <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+                <!-- Mobile categories will be loaded by JavaScript from admin panel -->
+            </div>
+        </nav>
+        <style>
+            .owl-nav{
+                display: none;
+            }
+            .carousel-control-prev {
+                display: none;
+                left: 0;
+            }
+            .carousel-control-next {
+                display: none;
+                left: 0;
+            }
+            #marqureetext {
+                display: none;
+            }
+
+            #sociallinkmobile {
+                display: none;
+            }
+
+            @media  only screen and (max-width: 768px) {
+                #marqureetext {
+                    display: inline;
+                    position: fixed;
+                    z-index: 9999;
+                    top: 0;
+                }
+
+                #sociallink {
+                    display: none;
+                }
+
+                #sociallinkmobile {
+                    display: inline;
+                }
+            }
+        </style>
+        
+        <script>
+            function openNav() {
+                document.getElementById("mySidenav").style.width = "250px";
+            }
+
+            function closeNav() {
+                document.getElementById("mySidenav").style.width = "0";
+            }
+        </script>
+    </div>
+    </div>
+
+</div>
+    <!-- Topbar End -->
+
+    <!-- Main content start -->
+    
+    <br>
+    <section class="section-content padding-y bg slidetop">
+        <div class="container p-0">
+            <div class="row">
+                <div class="col-md-6">
+                    <aside class="card mb-4">
+                        <article class="card-body">
+                            <header class="mb-4" style="background: #D19C97; ">
+                                <!--<marquee behavior="alternate">-->
+                                    <h1 class="m-0" style="padding-top: 8px;color:black;font-size: 22px;text-align:center;background:#fff;font-weight:bold">
+                                        আপনার অর্ডার সম্পন্ন করুন</h1>
+                                <!--</marquee>-->
+
+                            </header>
+                            <form action="#" method="POST"
+                                class="from-prevent-multiple-submits">
+                                <input type="hidden" name="_token" value="9HN1lnvlWCpHjwpwtHlHAnB6D5DsdN62mnXbzkZg">                                <div class="row">
+                                    <div class="form-group col-sm-12">
+                                        <label>নাম</label>
+                                        <input type="text" id="customerName" name="customerName"
+                                                                                         placeholder="আপনার নাম লিখুন" required class="form-control"
+                                            style=" background-repeat: no-repeat; background-attachment: scroll; background-size: 16px 18px; background-position: 98% 50%; cursor: auto;">
+                                    </div>
+                                                                                                            <div class="form-group col-sm-12">
+                                        <label>ঠিকানা</label>
+                                        <input type="text" id="customerAddress" name="customerAddress"
+                                            placeholder="আপনার ঠিকানা লিখুন" required class="form-control"
+                                            style=" background-repeat: no-repeat; background-attachment: scroll; background-size: 16px 18px; background-position: 98% 50%; cursor: auto;">
+                                    </div>
+                                    <div class="form-group col-sm-12">
+                                        <label>মোবাইল নম্বর</label>
+                                        <input type="tel" minlength="10" id="customerPhone"
+                                                                                         name="customerPhone" required class="form-control"
+                                            placeholder="মোবাইল নম্বর লিখুন">
+                                    </div>
+                                    <textarea id="ordersubtotalprice" name="subTotal" cols="10" rows="5" hidden>890</textarea>
+                                    <div class="form-group col-sm-12">
+                                        <label>ডেলিভারি চার্জ</label>
+                                        <select id="deliveryCharge" name="deliveryCharge" class="form-control">
+                                                                                            <option value="70">ঢাকার ভিতরে
+                                                    (70) </option>
+                                                <option value="130">ঢাকার বাইরে
+                                                    (130)</option>
+                                            
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-12">
+                                        <button type="submit" id="orderConfirm"
+                                            class="btn btn-lg btn-styled from-prevent-multiple-submits btn-base-1 btn-block btn-icon-left strong-500 hov-bounce hov-shaddow buy-now"
+                                            style="font-size:20px !important;background: #50ABE4;color: white;">
+                                            <i class="spinner fa fa-spinner fa-spin"></i> অর্ডার কনফার্ম করুন
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </article> <!-- card-body.// -->
+                    </aside>
+                </div>
+                <div class="col-md-6 orderDetails">
+                    <aside class="card">
+
+
+                        <article class="card-body">
+                            <header class="mb-4">
+                                <h4 class="card-title" style="font-size: 16px;">অর্ডার ডিটেইলস</h4>
+                            </header>
+                            <div class="row">
+                                <table class="table border-bottom" id="checkoutItemsTable"></table>
+                            </div>
+                        </article>
+
+                        <input type="text" name="size" value="" hidden>
+                        <input type="text" name="color" value="" hidden>
+
+                        <article class="card-body border-top">
+                            <dl class="row">
+                                <dt class="col-sm-8">Subtotal: </dt>
+                                <dd class="col-sm-4 text-right"><strong>৳ <span
+                                            id="subtotalprice">890</span> </strong></dd>
+
+                                <dt class="col-sm-8">Delivery charge: </dt>
+                                <dd class="col-sm-4 text-danger text-right"><strong>৳
+                                                            <span id="dinamicdalivery">70</span>
+                                                                            </strong></dd>
+
+                                <dt class="col-sm-8">Total:</dt>
+                                <dd class="col-sm-4 text-right"><strong class="h5 text-dark">৳ <span
+                                            id="totalamount"></span></strong></dd>
+                            </dl>
+
+                        </article>
+
+                    </aside>
+                </div>
+
+            </div>
+        </div>
+    </section>
+    <br>
+
+
+<style>
+    .spinner {
+        display: none;
+    }
+</style>
+    <!-- main content end -->
+
+    <style>
+        .d2w-footer {
+            background: linear-gradient(180deg, #f6e6d6 0%, #f1ddca 100%);
+            border-top: 1px solid #e6c9ad;
+            color: #2f3650;
+        }
+
+        .d2w-footer-logo {
+            width: 190px;
+            max-width: 100%;
+            border-radius: 8px;
+        }
+
+        .d2w-contact-card {
+            font-size: 17px;
+            line-height: 1.6;
+        }
+
+        .d2w-foot-title {
+            font-size: 23px;
+            font-weight: 700;
+            margin-bottom: 14px;
+            color: #2f3650;
+        }
+
+        .d2w-foot-links {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .d2w-foot-links li {
+            margin-bottom: 8px;
+        }
+
+        .d2w-foot-links a {
+            color: #2f3650;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .d2w-foot-links a:hover {
+            color: #f85606;
+        }
+
+        .d2w-socials a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            margin-right: 8px;
+            color: #fff;
+            background: #f85606;
+            text-decoration: none;
+        }
+
+        .d2w-socials a:hover {
+            background: #de4a00;
+        }
+
+        .d2w-page-widget {
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid #eecfb8;
+            background: #fff;
+            min-height: 300px;
+        }
+
+        .d2w-pay-wrap {
+            background: #fff;
+            border-radius: 10px;
+            border: 1px solid #eecfb8;
+            padding: 10px;
+        }
+
+        .d2w-copy {
+            color: #2f3650;
+            font-weight: 500;
+            font-size: 15px;
+        }
+
+        @media (max-width: 991px) {
+            .d2w-contact-card {
+                font-size: 16px;
+            }
+
+            .d2w-foot-title {
+                font-size: 21px;
+            }
+
+            .d2w-page-widget {
+                min-height: 260px;
+            }
+        }
+    </style>
+
+    <!-- Footer Start -->
+    <footer class="d2w-footer mt-3">
+        <div class="container-fluid px-xl-5 py-4">
+            <div class="row">
+                <div class="col-lg-4 mb-4 mb-lg-0">
+                    <img src="assets/logo_rectangle.jpeg"
+                        alt="Drop2Wave" class="d2w-footer-logo mb-3">
+                    <div class="d2w-contact-card">
+                        <p class="mb-2">Mohammadpur, Dhaka - 1207</p>
+                        <p class="mb-2"><strong>E-mail:</strong> drop2wave.bd@gmail.com</p>
+                        <p class="mb-0"><strong>Hotline:</strong> +880 1843912510</p>
+                    </div>
+
+                    <h6 class="d2w-foot-title mt-4">FOLLOW US ON:</h6>
+                    <div class="d2w-socials">
+                        <a href="https://www.facebook.com/profile.php?id=61582218376925" target="_blank" rel="noopener" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+                        <a href="404.html" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                        <a href="404.html" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+                    </div>
+                </div>
+
+                <div class="col-sm-6 col-lg-5 mb-4 mb-lg-0">
+                    <h5 class="d2w-foot-title">Useful Links</h5>
+                    <ul class="d2w-foot-links">
+                        <li><a href="about-us.html">About Us</a></li>
+                        <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                        <li><a href="return-replacement-policy.html">Return &amp; Replacement Policy</a></li>
+                            <li><a href="faq.html">FAQ</a></li>
+                            <li><a href="terms-and-conditions.html">Terms &amp; Conditions</a></li>
+                    </ul>
+                </div>
+<div class="col-lg-3">
+                    <h5 class="d2w-foot-title">Follow Page</h5>
+                    <div class="d2w-page-widget">
+                        <iframe title="facebook-page"
+                            src="https://www.facebook.com/plugins/page.php?href=https%3A%2F%2Fwww.facebook.com%2Fprofile.php%3Fid%3D61582218376925&tabs=timeline&width=260&height=290&small_header=true&adapt_container_width=true&hide_cover=false&show_facepile=true&appId"
+                            width="100%" height="300" style="border:none;overflow:hidden" scrolling="no"
+                            frameborder="0" allowfullscreen="true"
+                            allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d2w-pay-wrap mt-3">
+                <img src="assets/SSL03.webp" alt="Payment Partners" class="img-fluid">
+            </div>
+
+            <div class="text-center pt-3">
+                <p class="mb-0 d2w-copy">&copy; 2026 Drop2Wave</p>
+            </div>
+        </div>
+    </footer>
+    <!-- Footer End -->
+
+
+    
+    <!-- JavaScript Libraries -->
+<script src="frontend/lib/jquery/3.4.1/jquery.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.bundle.min.js"></script>
+<script src="frontend/lib/easing/easing.min.js"></script>
+<script src="frontend/lib/owlcarousel/owl.carousel.min.js"></script>
+
+<!-- Template Javascript -->
+<script src="frontend/js/clean-url.js"></script>
+<script src="frontend/js/main.js"></script>
+<script src="frontend/js/universal-data.js"></script>
+
+<!-- Checkout System -->
+<script src="frontend/js/checkout.js"></script>
+
+    
+
+</body>
+
+</html>
