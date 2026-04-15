@@ -1,15 +1,71 @@
 $(document).ready(async function() {
+    function getReviewsView() {
+        try {
+            const params = new URLSearchParams(window.location.search || '');
+            const view = String(params.get('view') || 'all').toLowerCase();
+            return ['all', 'create', 'pending'].includes(view) ? view : 'all';
+        } catch (err) {
+            return 'all';
+        }
+    }
+
+    const currentView = getReviewsView();
+
     if (!AdminStore.isAuthenticated()) {
         window.location.href = 'login.html';
         return;
     }
 
     const $status = $('#statusMessage');
+    let cloudReviewUnsubscribe = null;
 
-    await AdminStore.syncFromCloud();
+    setupViewMode();
     loadProductOptions();
     loadReviews();
     setupEvents();
+    startLiveReviewListener();
+
+    // Apply UI instantly from local state, then refresh from cloud in background.
+    AdminStore.syncFromCloud().then(() => {
+        loadProductOptions();
+        loadReviews();
+    }).catch((err) => {
+        console.warn('Background cloud sync failed for reviews page.', err);
+    });
+
+    function setupViewMode() {
+        const map = {
+            all: {
+                title: 'All Reviews',
+                subtitle: 'See all customer and admin reviews in one place.',
+                showCreate: false,
+                showPending: false,
+                showAll: true
+            },
+            create: {
+                title: 'Create Review',
+                subtitle: 'Create and publish reviews directly from admin panel.',
+                showCreate: true,
+                showPending: false,
+                showAll: false
+            },
+            pending: {
+                title: 'Pending Reviews',
+                subtitle: 'Approve or reject customer reviews that are waiting for moderation.',
+                showCreate: false,
+                showPending: true,
+                showAll: false
+            }
+        };
+
+        const cfg = map[currentView] || map.all;
+        $('#reviewsPageTitle').text(cfg.title);
+        $('#reviewsPageSubtitle').text(cfg.subtitle);
+
+        $('#createReviewCard').toggle(cfg.showCreate);
+        $('#pendingReviewsCard').toggle(cfg.showPending);
+        $('#allReviewsCard').toggle(cfg.showAll);
+    }
 
     function compressImageFile(file, maxDimension = 900, quality = 0.72) {
         return new Promise((resolve, reject) => {
@@ -142,7 +198,7 @@ $(document).ready(async function() {
         const productsMap = getProductsMap();
 
         const pending = reviews.filter(r => String(r.status) === 'pending');
-        const approved = reviews.filter(r => String(r.status) === 'approved');
+        const all = reviews;
 
         $('#pendingCount').text(pending.length);
 
@@ -152,10 +208,34 @@ $(document).ready(async function() {
             $('#pendingReviewsList').html(pending.map(r => renderReviewCard(r, productsMap, true)).join(''));
         }
 
-        if (!approved.length) {
-            $('#approvedReviewsList').html('<div class="text-muted">No approved reviews yet.</div>');
+        if (!all.length) {
+            $('#allReviewsList').html('<div class="text-muted">No reviews found yet.</div>');
         } else {
-            $('#approvedReviewsList').html(approved.map(r => renderReviewCard(r, productsMap, true)).join(''));
+            $('#allReviewsList').html(all.map(r => renderReviewCard(r, productsMap, true)).join(''));
+        }
+    }
+
+    async function startLiveReviewListener() {
+        try {
+            const ready = await AdminStore.ensureCloudReady();
+            if (!ready || cloudReviewUnsubscribe) return;
+
+            const ref = AdminStore.getCloudDocRef();
+            if (!ref) return;
+
+            cloudReviewUnsubscribe = ref.onSnapshot((snap) => {
+                if (!snap || !snap.exists) return;
+
+                const payload = snap.data() || {};
+                const cloudStore = AdminStore.normalizeStoreShape(payload.store || {});
+                localStorage.setItem(AdminStore.STORE_KEY, JSON.stringify(cloudStore));
+                loadProductOptions();
+                loadReviews();
+            }, (err) => {
+                console.warn('Live review listener failed.', err);
+            });
+        } catch (err) {
+            console.warn('Unable to start live review listener.', err);
         }
     }
 
@@ -222,6 +302,10 @@ $(document).ready(async function() {
             setReviewImages([]);
             loadReviews();
             showStatus('Review published successfully.', 'success');
+
+            if (currentView === 'create') {
+                $('#reviewProductId').focus();
+            }
         });
 
         $(document).on('click', '.approve-review', function() {

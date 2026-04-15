@@ -1,359 +1,500 @@
-﻿/**
- * Admin Orders Management System
- * Handle viewing, filtering, and updating orders
+/**
+ * Admin Orders - Performance-first rewrite
+ * Single parse at startup, lazy detail rendering, no startup migrations.
  */
+
+const ORDERS_KEY = 'drop2wave_orders_v1';
 
 let allOrders = [];
 let filteredOrders = [];
+let ordersById = new Map();
+let currentView = 'all';
+let renderLimit = 30;
+const renderStep = 30;
 
-// ============ Initialize Admin Orders ============
+function getViewFromUrl() {
+    try {
+        const params = new URLSearchParams(window.location.search || '');
+        const view = String(params.get('view') || 'all').toLowerCase();
+        const valid = new Set(['create', 'all', 'new', 'complete', 'no_response', 'cancelled', 'in_courier', 'hold']);
+        return valid.has(view) ? view : 'all';
+    } catch (e) {
+        return 'all';
+    }
+}
 
-function initAdminOrders() {
-    loadOrders();
-    setupEventListeners();
-    renderOrders();
-    updateStats();
+function normalizeStatus(status) {
+    const s = String(status || '').toLowerCase();
+    const map = {
+        confirmed: 'new',
+        processing: 'complete',
+        shipped: 'in_courier',
+        cancelled: 'cancelled',
+        delivered: 'delivered'
+    };
+    return map[s] || s || 'new';
+}
+
+function getStatusText(status) {
+    const map = {
+        new: 'New',
+        complete: 'Complete',
+        no_response: 'No Response',
+        cancelled: 'Cancelled',
+        in_courier: 'In Courier',
+        hold: 'Hold',
+        delivered: 'Delivered'
+    };
+    return map[status] || status;
+}
+
+function getDeliveryAreaText(area) {
+    const map = {
+        'dhaka-60': 'Inside Dhaka (60)',
+        'outside-130': 'Outside Dhaka (130)'
+    };
+    return map[String(area || '')] || String(area || '-');
+}
+
+function readOrdersStoreFast() {
+    try {
+        const raw = localStorage.getItem(ORDERS_KEY);
+        if (!raw) return { orders: [] };
+        const parsed = JSON.parse(raw);
+        if (!parsed || !Array.isArray(parsed.orders)) return { orders: [] };
+        return parsed;
+    } catch (e) {
+        console.warn('Could not parse orders store:', e);
+        return { orders: [] };
+    }
+}
+
+function saveOrdersStore(store) {
+    try {
+        localStorage.setItem(ORDERS_KEY, JSON.stringify(store));
+        return true;
+    } catch (e) {
+        console.warn('Could not save orders store:', e);
+        return false;
+    }
 }
 
 function loadOrders() {
-    allOrders = OrderManager.getAllOrders();
-    filteredOrders = allOrders.slice();
+    const store = readOrdersStoreFast();
+    const list = Array.isArray(store.orders) ? store.orders : [];
+
+    allOrders = list.map(order => ({
+        ...order,
+        status: normalizeStatus(order.status),
+        _searchText: [
+            String(order.orderId || ''),
+            String(order.customer?.name || ''),
+            String(order.customer?.phone || '')
+        ].join(' ').toLowerCase()
+    }));
+
+    allOrders.sort((a, b) => Number(b.orderTimestamp || 0) - Number(a.orderTimestamp || 0));
+    ordersById = new Map(allOrders.map(o => [String(o.orderId), o]));
 }
 
-function setupEventListeners() {
-    $('#filterStatus').on('change', filterOrders);
-    $('#searchOrders').on('keyup', filterOrders);
+function isOrderFromToday(order) {
+    const ts = Number(order.orderTimestamp || 0);
+    if (!Number.isFinite(ts) || ts <= 0) return false;
+
+    const d = new Date(ts);
+    const n = new Date();
+    return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
 }
 
-// ============ Filter and Search Functions ============
+function getOrderViewTitle() {
+    const titles = {
+        create: 'Create Order',
+        all: 'All Orders',
+        new: 'New Orders',
+        complete: 'Complete Orders',
+        no_response: 'No Response Orders',
+        cancelled: 'Cancel Orders',
+        in_courier: 'In Courier Orders',
+        hold: 'Hold Orders'
+    };
+    return titles[currentView] || 'All Orders';
+}
 
-function filterOrders() {
-    const statusFilter = $('#filterStatus').val();
-    const searchTerm = $('#searchOrders').val().toLowerCase();
+function getOrderViewSubtitle() {
+    const subtitles = {
+        create: 'Use checkout to place a customer order, then manage it from All Orders.',
+        all: 'Master control page: move orders between New, Complete, No Response, Hold, Cancel, In Courier, and Delivered.',
+        new: 'New daily incoming customer orders.',
+        complete: 'Verified orders confirmed by customer call.',
+        no_response: 'Orders where customer did not answer.',
+        cancelled: 'Orders cancelled after customer declined purchase.',
+        in_courier: 'Orders handed over to courier.',
+        hold: 'Orders currently on hold.'
+    };
+    return subtitles[currentView] || '';
+}
+
+function setupHeader() {
+    const title = document.getElementById('ordersPageTitle');
+    const subtitle = document.getElementById('ordersPageSubtitle');
+    const filterSection = document.getElementById('filterSection');
+    const statsRow = document.getElementById('statsRow');
+
+    if (title) title.textContent = getOrderViewTitle();
+    if (subtitle) subtitle.textContent = getOrderViewSubtitle();
+
+    const hideMeta = currentView === 'create';
+    if (filterSection) filterSection.style.display = hideMeta ? 'none' : '';
+    if (statsRow) statsRow.style.display = hideMeta ? 'none' : '';
+}
+
+function setupEvents() {
+    $('#filterStatus').on('change', applyFilters);
+
+    let t = null;
+    $('#searchOrders').on('input', function() {
+        clearTimeout(t);
+        t = setTimeout(applyFilters, 160);
+    });
+
+    $(document).on('click', '#logoutBtn', function() {
+        if (confirm('Logout from admin panel?')) {
+            if (typeof AdminStore !== 'undefined' && AdminStore.clearSession) {
+                AdminStore.clearSession();
+            }
+            window.location.href = 'login.html';
+        }
+    });
+
+    window.addEventListener('storage', function(e) {
+        if (e.key !== ORDERS_KEY) return;
+        loadOrders();
+        applyFilters();
+        updateStats();
+    });
+
+    setInterval(function() {
+        if (document.hidden) return;
+        loadOrders();
+        applyFilters();
+        updateStats();
+    }, 120000);
+}
+
+function matchesCurrentView(order) {
+    if (currentView === 'all') return true;
+    if (currentView === 'create') return false;
+    if (currentView === 'new') return order.status === 'new' && isOrderFromToday(order);
+    return order.status === currentView;
+}
+
+function applyFilters() {
+    const statusFilter = String($('#filterStatus').val() || '').toLowerCase();
+    const search = String($('#searchOrders').val() || '').toLowerCase().trim();
 
     filteredOrders = allOrders.filter(order => {
-        // Filter by status
-        if (statusFilter && order.status !== statusFilter) {
-            return false;
-        }
-
-        // Filter by search term
-        if (searchTerm) {
-            const matchOrderId = order.orderId.toLowerCase().includes(searchTerm);
-            const matchPhone = order.customer.phone.includes(searchTerm);
-            const matchName = order.customer.name.toLowerCase().includes(searchTerm);
-
-            return matchOrderId || matchPhone || matchName;
-        }
-
+        if (!matchesCurrentView(order)) return false;
+        if (currentView === 'all' && statusFilter && order.status !== statusFilter) return false;
+        if (search && !String(order._searchText || '').includes(search)) return false;
         return true;
     });
 
+    renderLimit = renderStep;
     renderOrders();
 }
 
-// ============ Render Functions ============
+function renderCreateView() {
+    $('#ordersContainer').html(`
+        <div class="empty-state">
+            <i class="fas fa-plus-circle"></i>
+            <h3>Create Order</h3>
+            <p>Create customer orders through checkout and manage all transitions in All Orders.</p>
+            <a href="../checkout.html" class="btn btn-primary btn-sm mt-2">
+                <i class="fas fa-external-link-alt"></i> Open Checkout
+            </a>
+        </div>
+    `);
+}
+
+function formatOrderTime(order) {
+    try {
+        if (order.orderDate) {
+            const dt = new Date(order.orderDate);
+            if (!Number.isNaN(dt.getTime())) {
+                return dt.toLocaleString('en-BD', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            }
+        }
+    } catch (e) {
+        // Fall through to stored label.
+    }
+    return String(order.orderTime || '-');
+}
 
 function renderOrders() {
-    const container = $('#ordersContainer');
+    if (currentView === 'create') {
+        renderCreateView();
+        return;
+    }
 
-    if (filteredOrders.length === 0) {
+    const container = $('#ordersContainer');
+    if (!filteredOrders.length) {
         container.html(`
             <div class="empty-state">
                 <i class="fas fa-inbox"></i>
-                <h3>কোনো অর্ডার পাওয়া যায়নি</h3>
-                <p>আপনার সার্চ মানদণ্ড অনুযায়ী কোনো অর্ডার নেই</p>
+                <h3>No orders found</h3>
+                <p>No orders matched this page criteria.</p>
             </div>
         `);
         return;
     }
 
-    let html = '';
+    const shown = filteredOrders.slice(0, renderLimit);
+    const remaining = filteredOrders.length - shown.length;
 
-    filteredOrders.forEach(order => {
-        html += renderOrderCard(order);
-    });
+    const html = shown.map(renderOrderCard).join('') + (remaining > 0 ? `
+        <div class="text-center mt-3">
+            <button class="btn btn-outline-secondary btn-sm" id="loadMoreOrdersBtn">Load More (${remaining} remaining)</button>
+        </div>
+    ` : '');
 
     container.html(html);
 
-    // Attach event listeners to order cards
     $('.order-header').on('click', function() {
-        $(this).siblings('.order-body').toggleClass('show');
+        const $card = $(this).closest('.order-card');
+        const orderId = String($card.data('order-id') || '');
+        const $body = $card.find('.order-body');
+        const order = ordersById.get(orderId);
+
+        if (order && !$body.data('rendered')) {
+            $body.html(renderOrderBody(order));
+            $body.data('rendered', '1');
+        }
+
+        $body.toggleClass('show');
         $(this).find('.fa-chevron-up, .fa-chevron-down').toggleClass('fa-chevron-up fa-chevron-down');
+    });
+
+    $('#loadMoreOrdersBtn').on('click', function() {
+        renderLimit += renderStep;
+        renderOrders();
     });
 }
 
 function renderOrderCard(order) {
-    const statusClass = `status-${order.status}`;
     const statusText = getStatusText(order.status);
-    const isExpanded = false;
-
     return `
         <div class="order-card" data-order-id="${order.orderId}">
             <div class="order-header">
                 <div class="order-header-left">
-                    <div class="order-id">
-                        <i class="fas fa-tag"></i> ${order.orderId}
-                    </div>
-                    <div class="order-date">
-                        <i class="fas fa-calendar-alt"></i> ${order.orderTime}
-                    </div>
+                    <div class="order-id"><i class="fas fa-tag"></i> ${order.orderId}</div>
+                    <div class="order-date"><i class="fas fa-calendar-alt"></i> ${formatOrderTime(order)}</div>
                 </div>
-                <div style="text-align: right; margin-left: auto; margin-right: 20px;">
-                    <span class="status-badge ${statusClass}">${statusText}</span>
+                <div style="text-align:right;margin-left:auto;margin-right:20px;">
+                    <span class="status-badge status-${order.status}">${statusText}</span>
                 </div>
-                <div class="order-total">
-                    ৳ ${order.pricing.total.toLocaleString()}
-                </div>
-                <div style="margin-left: 15px; color: white; font-size: 18px;">
-                    <i class="fas fa-chevron-down"></i>
+                <div class="order-total">Tk ${Number(order.pricing?.total || 0).toLocaleString()}</div>
+                <div style="margin-left:15px;color:white;font-size:18px;"><i class="fas fa-chevron-down"></i></div>
+            </div>
+            <div class="order-body" data-rendered=""></div>
+        </div>
+    `;
+}
+
+function renderOrderBody(order) {
+    const canControl = currentView === 'all';
+    const statusText = getStatusText(order.status);
+
+    const controlBlock = canControl ? `
+        <div class="order-section">
+            <div class="section-title"><i class="fas fa-random"></i> Move Order (All Orders Control)</div>
+            <div class="status-update-section">
+                <div style="font-size:12px;color:#6b7280;margin-bottom:10px;">Current: <strong>${statusText}</strong></div>
+                <div class="status-controls">
+                    ${renderStatusBtn(order, 'new', 'bell', 'New')}
+                    ${renderStatusBtn(order, 'complete', 'check-circle', 'Complete')}
+                    ${renderStatusBtn(order, 'no_response', 'phone-slash', 'No Response')}
+                    ${renderStatusBtn(order, 'hold', 'pause-circle', 'Hold')}
+                    ${renderStatusBtn(order, 'cancelled', 'times-circle', 'Cancel')}
+                    ${renderStatusBtn(order, 'in_courier', 'shipping-fast', 'In Courier')}
+                    ${renderStatusBtn(order, 'delivered', 'box', 'Delivered')}
                 </div>
             </div>
+        </div>
+    ` : '';
 
-            <div class="order-body">
-                <!-- Customer Information -->
-                <div class="order-section">
-                    <div class="section-title"><i class="fas fa-user"></i> গ্রাহক তথ্য</div>
-                    <div class="info-row">
-                        <span class="info-label">নাম:</span>
-                        <span class="info-value">${order.customer.name}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">ফোন:</span>
-                        <span class="info-value">
-                            <a href="tel:${order.customer.phone}">${order.customer.phone}</a>
-                        </span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">ঠিকানা:</span>
-                        <span class="info-value">${order.customer.address}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">এলাকা:</span>
-                        <span class="info-value">${getDeliveryAreaText(order.customer.deliveryArea)}</span>
-                    </div>
-                    ${order.customer.specialNotes ? `
-                        <div class="info-row">
-                            <span class="info-label">বিশেষ নোট:</span>
-                            <span class="info-value">${order.customer.specialNotes}</span>
-                        </div>
-                    ` : ''}
-                </div>
+    const history = Array.isArray(order.statusHistory) ? order.statusHistory : [];
 
-                <!-- Order Items -->
-                <div class="order-section">
-                    <div class="section-title"><i class="fas fa-box"></i> পণ্যসম�‚হ</div>
-                    ${order.items.map(item => `
-                        <div class="product-item">
-                            ${item.image ? `
-                                <div class="product-image">
-                                    <img src="${item.image}" alt="${item.name}" onerror="this.style.display='none'">
-                                </div>
-                            ` : `<div class="product-image"><i class="fas fa-image" style="color:#999;font-size:20px;"></i></div>`}
-                            <div class="product-info">
-                                <div class="product-name">${item.name}</div>
-                                <div class="product-meta">
-                                    পরিমাণ: <strong>${item.quantity}</strong> 📦— 
-                                    ৳ <strong>${item.price}</strong> = 
-                                    <span class="product-price">৳ ${(item.price * item.quantity).toLocaleString()}</span>
-                                </div>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
+    return `
+        <div class="order-section">
+            <div class="section-title"><i class="fas fa-user"></i> Customer</div>
+            <div class="info-row"><span class="info-label">Name:</span><span class="info-value">${order.customer?.name || '-'}</span></div>
+            <div class="info-row"><span class="info-label">Phone:</span><span class="info-value"><a href="tel:${order.customer?.phone || ''}">${order.customer?.phone || '-'}</a></span></div>
+            <div class="info-row"><span class="info-label">Address:</span><span class="info-value">${order.customer?.address || '-'}</span></div>
+            <div class="info-row"><span class="info-label">Area:</span><span class="info-value">${getDeliveryAreaText(order.customer?.deliveryArea || '')}</span></div>
+            ${order.customer?.specialNotes ? `<div class="info-row"><span class="info-label">Note:</span><span class="info-value">${order.customer.specialNotes}</span></div>` : ''}
+        </div>
 
-                <!-- Pricing Details -->
-                <div class="order-section">
-                    <div class="section-title"><i class="fas fa-receipt"></i> মূল্য বিবরণ</div>
-                    <div class="info-row">
-                        <span class="info-label">পণ্যের মূল্য:</span>
-                        <span class="info-value">৳ ${order.pricing.subtotal.toLocaleString()}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">ডেলিভারি চার্জ:</span>
-                        <span class="info-value">৳ ${order.pricing.deliveryCharge.toLocaleString()}</span>
-                    </div>
-                    <div class="info-row" style="font-size: 14px; font-weight: 700; padding: 12px 0; border: 1px solid #f0f0f0; border-radius: 4px; padding-left: 8px; padding-right: 8px;">
-                        <span class="info-label">মোট অর্থ:</span>
-                        <span class="info-value" style="color: #f85606; font-size: 16px;">৳ ${order.pricing.total.toLocaleString()}</span>
+        <div class="order-section">
+            <div class="section-title"><i class="fas fa-box"></i> Items</div>
+            ${(order.items || []).map(item => `
+                <div class="product-item">
+                    ${item.image ? `<div class="product-image"><img src="${item.image}" alt="${item.name}" loading="lazy" onerror="this.style.display='none'"></div>` : `<div class="product-image"><i class="fas fa-image" style="color:#999;font-size:20px;"></i></div>`}
+                    <div class="product-info">
+                        <div class="product-name">${item.name}</div>
+                        <div class="product-meta">Qty: <strong>${item.quantity}</strong> | Price: <strong>Tk ${item.price}</strong> | Total: <span class="product-price">Tk ${(Number(item.price || 0) * Number(item.quantity || 0)).toLocaleString()}</span></div>
                     </div>
                 </div>
+            `).join('')}
+        </div>
 
-                <!-- Status Update Section -->
-                <div class="order-section">
-                    <div class="section-title"><i class="fas fa-sync"></i> স্থিতি আপডেট</div>
-                    <div class="status-update-section">
-                        <div style="font-size: 12px; color: #6b7280; margin-bottom: 10px;">বর্তমান স্থিতি: <strong>${statusText}</strong></div>
-                        <div class="status-controls">
-                            <button class="btn-status ${order.status === 'processing' ? 'active' : ''}" onclick="updateOrderStatus('${order.orderId}', 'processing')">
-                                <i class="fas fa-hourglass"></i> প্রক্রিয়াকরণ
-                            </button>
-                            <button class="btn-status ${order.status === 'shipped' ? 'active' : ''}" onclick="updateOrderStatus('${order.orderId}', 'shipped')">
-                                <i class="fas fa-truck"></i> পাঠানো
-                            </button>
-                            <button class="btn-status ${order.status === 'delivered' ? 'active' : ''}" onclick="updateOrderStatus('${order.orderId}', 'delivered')">
-                                <i class="fas fa-check"></i> ডেলিভারি
-                            </button>
-                        </div>
-                    </div>
-                </div>
+        <div class="order-section">
+            <div class="section-title"><i class="fas fa-receipt"></i> Pricing</div>
+            <div class="info-row"><span class="info-label">Subtotal:</span><span class="info-value">Tk ${Number(order.pricing?.subtotal || 0).toLocaleString()}</span></div>
+            <div class="info-row"><span class="info-label">Delivery:</span><span class="info-value">Tk ${Number(order.pricing?.deliveryCharge || 0).toLocaleString()}</span></div>
+            <div class="info-row" style="font-size:14px;font-weight:700;padding:12px 8px;border:1px solid #f0f0f0;border-radius:4px;"><span class="info-label">Total:</span><span class="info-value" style="color:#f85606;font-size:16px;">Tk ${Number(order.pricing?.total || 0).toLocaleString()}</span></div>
+        </div>
 
-                <!-- Status History -->
-                <div class="order-section">
-                    <div class="section-title"><i class="fas fa-history"></i> স্থিতি ইতিহাস</div>
-                    <div style="font-size: 12px;">
-                        ${order.statusHistory.map(history => `
-                            <div style="padding: 8px; border-left: 3px solid #f85606; margin-bottom: 8px; background: #f9fafb; padding-left: 10px;">
-                                <strong>${history.status}</strong> - ${history.timestamp}
-                                <div style="color: #6b7280; font-size: 11px; margin-top: 2px;">${history.note}</div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
+        ${controlBlock}
 
-                <!-- Action Buttons -->
-                <div class="order-section">
-                    <div class="action-buttons">
-                        <button class="btn-action btn-delete" onclick="deleteOrder('${order.orderId}')">
-                            <i class="fas fa-trash"></i> অর্ডার মুছুন
-                        </button>
+        <div class="order-section">
+            <div class="section-title"><i class="fas fa-history"></i> History</div>
+            <div style="font-size:12px;">
+                ${history.map(h => `
+                    <div style="padding:8px;border-left:3px solid #f85606;margin-bottom:8px;background:#f9fafb;padding-left:10px;">
+                        <strong>${getStatusText(normalizeStatus(h.status))}</strong> - ${h.timestamp || '-'}
+                        <div style="color:#6b7280;font-size:11px;margin-top:2px;">${h.note || ''}</div>
                     </div>
-                </div>
+                `).join('')}
+            </div>
+        </div>
+
+        <div class="order-section">
+            <div class="action-buttons">
+                <button class="btn-action btn-delete" onclick="deleteOrder('${order.orderId}')"><i class="fas fa-trash"></i> Delete Order</button>
             </div>
         </div>
     `;
 }
 
-// ============ Status Management ============
+function renderStatusBtn(order, status, icon, label) {
+    const active = order.status === status ? 'active' : '';
+    return `<button class="btn-status ${active}" onclick="updateOrderStatus('${order.orderId}', '${status}')"><i class="fas fa-${icon}"></i> ${label}</button>`;
+}
 
 function updateOrderStatus(orderId, newStatus) {
-    if (OrderManager.updateOrderStatus(orderId, newStatus)) {
-        loadOrders();
-        renderOrders();
-        updateStats();
+    const notes = {
+        new: 'New order received',
+        complete: 'Customer verified and order confirmed',
+        no_response: 'Customer did not answer call',
+        cancelled: 'Customer cancelled the order',
+        in_courier: 'Order handed over to courier',
+        hold: 'Order put on hold',
+        delivered: 'Order delivered successfully'
+    };
 
-        // Show confirmation toast if available
-        showStatusUpdateToast(orderId, newStatus);
-    } else {
-        alert('স্থিতি আপডেট করতে ব্যর্থ। আবার চেষ্টা করুন।');
+    const store = readOrdersStoreFast();
+    const order = (store.orders || []).find(o => String(o.orderId) === String(orderId));
+    if (!order) return;
+
+    order.status = newStatus;
+    const history = Array.isArray(order.statusHistory) ? order.statusHistory : [];
+    history.push({
+        status: newStatus,
+        timestamp: new Date().toLocaleString('en-BD'),
+        note: notes[newStatus] || 'Status updated'
+    });
+    order.statusHistory = history;
+
+    if (!saveOrdersStore(store)) {
+        alert('Could not update order status.');
+        return;
     }
+
+    if (window.UniversalData && typeof window.UniversalData.pushOrdersFromLocal === 'function') {
+        window.UniversalData.pushOrdersFromLocal().catch(() => {});
+    }
+
+    loadOrders();
+    applyFilters();
+    updateStats();
 }
 
 function deleteOrder(orderId) {
-    if (confirm('আপনি কি এই অর্ডারটি মুছে ফেলতে চান? এটি বাতিল করা যাবে না।')) {
-        if (OrderManager.deleteOrder(orderId)) {
-            loadOrders();
-            renderOrders();
-            updateStats();
-            alert('অর্ডার সফলভাবে মুছে ফেলা হয়েছে।');
-        } else {
-            alert('অর্ডার মুছতে ব্যর্থ। আবার চেষ্টা করুন।');
-        }
+    if (!confirm('Delete this order permanently?')) return;
+
+    const store = readOrdersStoreFast();
+    const before = (store.orders || []).length;
+    store.orders = (store.orders || []).filter(o => String(o.orderId) !== String(orderId));
+
+    if (store.orders.length === before) return;
+    if (!saveOrdersStore(store)) {
+        alert('Could not delete order.');
+        return;
     }
+
+    if (window.UniversalData && typeof window.UniversalData.pushOrdersFromLocal === 'function') {
+        window.UniversalData.pushOrdersFromLocal().catch(() => {});
+    }
+
+    loadOrders();
+    applyFilters();
+    updateStats();
 }
-
-// ============ Helper Functions ============
-
-function getStatusText(status) {
-    const statusMap = {
-        'confirmed': 'নিশ্চিত',
-        'processing': 'প্রক্রিয়াকরণ',
-        'shipped': 'পাঠানো',
-        'delivered': 'ডেলিভারি',
-        'cancelled': 'বাতিল'
-    };
-    return statusMap[status] || status;
-}
-
-function getDeliveryAreaText(area) {
-    const areaMap = {
-        'dhaka-60': 'ঢাকার ভিতর (৳ ৬০)',
-        'outside-130': 'ঢাকার বাহির (৳ ১৩০)'
-    };
-    return areaMap[area] || area;
-}
-
-// ============ Statistics ============
 
 function updateStats() {
     const total = allOrders.length;
-    const confirmed = allOrders.filter(o => o.status === 'confirmed').length;
-    const shipped = allOrders.filter(o => o.status === 'shipped').length;
-    const delivered = allOrders.filter(o => o.status === 'delivered').length;
+    const newCount = allOrders.filter(o => o.status === 'new').length;
+    const completeCount = allOrders.filter(o => o.status === 'complete').length;
+    const inCourierCount = allOrders.filter(o => o.status === 'in_courier').length;
 
     $('#totalOrders').text(total);
-    $('#confirmedOrders').text(confirmed);
-    $('#shippedOrders').text(shipped);
-    $('#deliveredOrders').text(delivered);
+    $('#confirmedOrders').text(newCount);
+    $('#shippedOrders').text(completeCount);
+    $('#deliveredOrders').text(inCourierCount);
 }
 
-// ============ Notifications/Toasts ============
+function init() {
+    if (typeof AdminStore !== 'undefined' && AdminStore.isAuthenticated && !AdminStore.isAuthenticated()) {
+        window.location.href = 'login.html';
+        return;
+    }
 
-function showStatusUpdateToast(orderId, newStatus) {
-    // Simple alert-based notification
-    const statusText = getStatusText(newStatus);
-    console.log(`অর্ডার ${orderId} এর স্থিতি আপডেট হয়েছে: ${statusText}`);
-}
+    currentView = getViewFromUrl();
+    setupHeader();
+    setupEvents();
 
-// ============ Export/Print Functions ============
+    $('#ordersContainer').html(`
+        <div class="empty-state">
+            <i class="fas fa-spinner fa-spin"></i>
+            <h3>Loading orders...</h3>
+            <p>Please wait.</p>
+        </div>
+    `);
 
-function exportOrdersToCSV() {
-    let csv = 'অর্ডার নম্বর,গ্রাহক,ফোন,ঠিকানা,পণ্যের সংখ্যা,মোট মূল্য,স্থিতি,সময়\n';
+    requestAnimationFrame(async function() {
+        if (window.UniversalData && typeof window.UniversalData.pullOrdersToLocal === 'function') {
+            await window.UniversalData.pullOrdersToLocal().catch(() => {});
+        }
 
-    allOrders.forEach(order => {
-        const row = [
-            order.orderId,
-            order.customer.name,
-            order.customer.phone,
-            order.customer.address,
-            order.items.length,
-            order.pricing.total,
-            getStatusText(order.status),
-            order.orderTime
-        ].map(cell => `"${cell}"`).join(',');
-
-        csv += row + '\n';
-    });
-
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `orders_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-}
-
-// ============ Real-time Sync ============
-
-// Listen for cart/order changes from other pages
-window.addEventListener('storage', function(e) {
-    if (e.key === 'drop2wave_orders_v1') {
         loadOrders();
-        renderOrders();
+        $('#filterStatus').val('');
+        applyFilters();
         updateStats();
-    }
-});
 
-// Refresh orders every 30 seconds
-setInterval(function() {
-    loadOrders();
-    updateStats();
-    // Don't re-render unless there are new orders
-    if (filteredOrders.length > 0) {
-        // Silent update - only render if filters changed or new orders added
-    }
-}, 30000);
+        if (window.UniversalData && typeof window.UniversalData.subscribeToOrders === 'function') {
+            window.UniversalData.subscribeToOrders(function() {
+                loadOrders();
+                applyFilters();
+                updateStats();
+            }).catch(() => {});
+        }
+    });
+}
 
-// ============ Initialize when page loads ============
-
-$(document).ready(function() {
-    // Check if user is authenticated
-    const adminSession = localStorage.getItem('drop2wave_admin_session');
-    if (!adminSession) {
-        // Redirect to login or show warning
-        console.warn('Admin session not found. Please log in.');
-    }
-
-    initAdminOrders();
-});
-
+$(document).ready(init);

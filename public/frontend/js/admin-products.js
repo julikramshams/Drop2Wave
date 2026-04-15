@@ -3,9 +3,12 @@
  */
 
 $(document).ready(async function() {
+    const isNestedProductsPage = window.location.pathname.toLowerCase().indexOf('/admin/products/') !== -1;
+    const loginPath = isNestedProductsPage ? '../login.html' : 'login.html';
+
     // Check authentication
     if (!AdminStore.isAuthenticated()) {
-        window.location.href = 'login.html';
+        window.location.href = loginPath;
         return;
     }
     
@@ -22,6 +25,31 @@ $(document).ready(async function() {
     setupNewProductHandler();
     setupTotalProductHandler();
     setupLogout();
+    startLiveStoreListener();
+
+    async function startLiveStoreListener() {
+        try {
+            const ready = await AdminStore.ensureCloudReady();
+            if (!ready) return;
+
+            const ref = AdminStore.getCloudDocRef();
+            if (!ref) return;
+
+            ref.onSnapshot((snap) => {
+                if (!snap || !snap.exists) return;
+                const payload = snap.data() || {};
+                const cloudStore = AdminStore.normalizeStoreShape(payload.store || {});
+                localStorage.setItem(AdminStore.STORE_KEY, JSON.stringify(cloudStore));
+                loadCategoryOptions();
+                loadNewProducts();
+                loadTotalProducts();
+            }, (err) => {
+                console.warn('Live product listener failed.', err);
+            });
+        } catch (err) {
+            console.warn('Unable to start live product listener.', err);
+        }
+    }
 
     function isQuotaExceededError(err) {
         if (!err) return false;
@@ -630,7 +658,7 @@ $(document).ready(async function() {
         $(document).on('click', '#logoutBtn', function() {
             if (confirm('Logout from admin panel?')) {
                 AdminStore.clearSession();
-                window.location.href = 'login.html';
+                window.location.href = loginPath;
             }
         });
     }

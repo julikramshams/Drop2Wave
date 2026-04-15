@@ -18,6 +18,9 @@ function readOrdersRaw() {
 function saveOrdersRaw(data) {
     try {
         localStorage.setItem('drop2wave_orders_v1', JSON.stringify(data));
+        if (window.UniversalData && typeof window.UniversalData.pushOrdersFromLocal === 'function') {
+            window.UniversalData.pushOrdersFromLocal().catch(() => {});
+        }
         return true;
     } catch (e) {
         console.error('Error saving orders:', e);
@@ -31,6 +34,13 @@ class OrderManager {
     }
 
     static createOrder(customerData, cartItems, deliveryCharge, subtotal, total) {
+        const sanitizeOrderImage = (rawImage) => {
+            const value = String(rawImage || '').trim();
+            // Data URLs make order storage huge over time. Keep listing fast by not persisting them.
+            if (!value || value.startsWith('data:image/')) return '';
+            return value;
+        };
+
         const order = {
             orderId: this.generateOrderId(),
             orderDate: new Date().toISOString(),
@@ -60,7 +70,7 @@ class OrderManager {
                 price: item.price,
                 quantity: item.quantity,
                 total: item.price * item.quantity,
-                image: item.image || null,
+                image: sanitizeOrderImage(item.image),
                 categoryId: item.categoryId
             })),
 
@@ -72,12 +82,12 @@ class OrderManager {
             },
 
             // Order Status
-            status: 'confirmed', // confirmed, processing, shipped, delivered, cancelled
+            status: 'new', // new, complete, no_response, hold, cancelled, in_courier, delivered
             statusHistory: [
                 {
-                    status: 'confirmed',
+                    status: 'new',
                     timestamp: new Date().toLocaleString('bn-BD'),
-                    note: 'অর্ডার গ্রহণ করা হয়েছে'
+                    note: 'New order received'
                 }
             ]
         };
@@ -106,11 +116,13 @@ class OrderManager {
         
         if (order) {
             const statusMap = {
-                'confirmed': 'অর্ডার গ্রহণ করা হয়েছে',
-                'processing': 'প্রক্রিয়াকরণ চলছে',
-                'shipped': 'পণ্য পাঠানো হয়েছে',
-                'delivered': 'পণ্য ডেলিভারি করা হয়েছে',
-                'cancelled': 'অর্ডার বাতিল করা হয়েছে'
+                'new': 'New order received',
+                'complete': 'Customer verified and order confirmed',
+                'no_response': 'Customer did not answer call',
+                'hold': 'Order put on hold',
+                'cancelled': 'Order cancelled by customer',
+                'in_courier': 'Order sent to courier',
+                'delivered': 'Order delivered successfully'
             };
 
             order.status = newStatus;
@@ -131,6 +143,131 @@ class OrderManager {
         return saveOrdersRaw(orders);
     }
 }
+
+const IncompleteOrderTracker = {
+    KEY: 'drop2wave_incomplete_orders_v1',
+    SESSION_ID_KEY: 'drop2wave_checkout_draft_id',
+
+    getSessionId() {
+        let id = sessionStorage.getItem(this.SESSION_ID_KEY);
+        if (!id) {
+            id = 'inc_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+            sessionStorage.setItem(this.SESSION_ID_KEY, id);
+        }
+        return id;
+    },
+
+    readList() {
+        try {
+            const parsed = JSON.parse(localStorage.getItem(this.KEY) || '[]');
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            return [];
+        }
+    },
+
+    saveList(list) {
+        localStorage.setItem(this.KEY, JSON.stringify(Array.isArray(list) ? list : []));
+    },
+
+    getPayload() {
+        const cartItems = getCartItemsFromStorage();
+        const name = String(document.getElementById('customerName')?.value || '').trim();
+        const phone = String(document.getElementById('customerPhone')?.value || '').trim();
+        const address = String(document.getElementById('customerAddress')?.value || '').trim();
+        const deliveryArea = String(document.getElementById('deliveryCharge')?.value || '');
+        const notes = String(document.getElementById('specialNotes')?.value || '').trim();
+
+        return {
+            id: this.getSessionId(),
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            customer: {
+                name,
+                phone,
+                address,
+                deliveryArea,
+                specialNotes: notes
+            },
+            items: cartItems.map(item => ({
+                id: item.id,
+                name: item.name,
+                quantity: Number(item.quantity || 0) || 0,
+                price: Number(item.price || 0) || 0
+            }))
+        };
+    },
+
+    hasMeaningfulDraft(payload) {
+        const c = payload.customer || {};
+        const typedAny = Boolean(c.name || c.phone || c.address || c.specialNotes);
+        const hasItems = Array.isArray(payload.items) && payload.items.length > 0;
+        return typedAny && hasItems;
+    },
+
+    upsertDraft() {
+        const payload = this.getPayload();
+        const list = this.readList();
+        const idx = list.findIndex(item => String(item.id) === String(payload.id));
+
+        if (!this.hasMeaningfulDraft(payload)) {
+            if (idx !== -1) {
+                list.splice(idx, 1);
+                this.saveList(list);
+            }
+            return;
+        }
+
+        if (idx === -1) {
+            list.push(payload);
+        } else {
+            payload.createdAt = Number(list[idx].createdAt || payload.createdAt);
+            list[idx] = payload;
+        }
+
+        // Keep storage bounded.
+        list.sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
+        this.saveList(list.slice(0, 300));
+        if (window.UniversalData && typeof window.UniversalData.pushIncompleteFromLocal === 'function') {
+            window.UniversalData.pushIncompleteFromLocal().catch(() => {});
+        }
+    },
+
+    removeCurrentDraft() {
+        const id = this.getSessionId();
+        const list = this.readList().filter(item => String(item.id) !== String(id));
+        this.saveList(list);
+        sessionStorage.removeItem(this.SESSION_ID_KEY);
+        if (window.UniversalData && typeof window.UniversalData.pushIncompleteFromLocal === 'function') {
+            window.UniversalData.pushIncompleteFromLocal().catch(() => {});
+        }
+    },
+
+    setup() {
+        const run = () => this.upsertDraft();
+        const debounced = (() => {
+            let t = null;
+            return () => {
+                clearTimeout(t);
+                t = setTimeout(run, 250);
+            };
+        })();
+
+        ['customerName', 'customerPhone', 'customerAddress', 'specialNotes', 'deliveryCharge'].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener('input', debounced);
+            el.addEventListener('change', debounced);
+        });
+
+        window.addEventListener('beforeunload', run);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') run();
+        });
+
+        run();
+    }
+};
 
 // ============ Checkout Page Functions ============
 
@@ -383,6 +520,7 @@ function processOrder() {
         if (orderSaved) {
             // Clear cart
             localStorage.removeItem('drop2wave_cart_v1');
+            IncompleteOrderTracker.removeCurrentDraft();
 
             // Show success message
             setTimeout(() => {
@@ -459,5 +597,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     initCheckoutPage();
+    if (window.UniversalData && typeof window.UniversalData.pullIncompleteToLocal === 'function') {
+        window.UniversalData.pullIncompleteToLocal().catch(() => {});
+    }
+    IncompleteOrderTracker.setup();
 });
 
