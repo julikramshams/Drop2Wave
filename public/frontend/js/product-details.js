@@ -16,8 +16,6 @@
 
     var cloudInitPromise = null;
     var activeProduct = null;
-    var cloudStoreUnsubscribe = null;
-    var cloudListenerPrimed = false;
     var galleryState = {
         images: [],
         index: 0,
@@ -134,38 +132,6 @@
         }
     }
 
-    async function startCloudStoreListener() {
-        var ready = await ensureCloudReady();
-        if (!ready || cloudStoreUnsubscribe) return;
-
-        try {
-            var db = window.firebase.firestore();
-            var ref = db.collection(CLOUD_COLLECTION).doc(CLOUD_DOCUMENT);
-
-            cloudStoreUnsubscribe = ref.onSnapshot(function (snap) {
-                if (!snap || !snap.exists) return;
-
-                var payload = snap.data() || {};
-                saveStoreRaw(payload.store || { categories: [], products: [], reviews: [] });
-
-                if (activeProduct) {
-                    var store = readStoreRaw();
-                    renderReviewList(activeProduct.id, store);
-                }
-
-                if (cloudListenerPrimed) {
-                    flashReviewSyncNote();
-                } else {
-                    cloudListenerPrimed = true;
-                }
-            }, function (err) {
-                console.warn("Live store listener failed.", err);
-            });
-        } catch (err) {
-            console.warn("Unable to start live store listener.", err);
-        }
-    }
-
     async function pushStoreToCloud(store) {
         var ready = await ensureCloudReady();
         if (!ready) return false;
@@ -181,51 +147,6 @@
             console.warn("Failed to push details store to cloud.", err);
             return false;
         }
-    }
-
-    function flashReviewSyncNote() {
-        var note = document.getElementById("reviewSyncNote");
-        if (!note) return;
-
-        note.style.display = "block";
-        note.textContent = "Updated just now";
-
-        if (note._hideTimer) {
-            clearTimeout(note._hideTimer);
-        }
-
-        note._hideTimer = setTimeout(function () {
-            note.style.display = "none";
-        }, 2200);
-    }
-
-    function openLightbox(src, caption) {
-        var overlay = document.getElementById("imageLightbox");
-        var img = document.getElementById("lightboxImage");
-        var label = document.getElementById("lightboxCaption");
-        if (!overlay || !img || !src) return;
-
-        img.src = src;
-        img.alt = caption || "Product image";
-        if (label) label.textContent = caption || "";
-
-        overlay.classList.add("open");
-        overlay.setAttribute("aria-hidden", "false");
-        document.body.style.overflow = "hidden";
-    }
-
-    function closeLightbox() {
-        var overlay = document.getElementById("imageLightbox");
-        var img = document.getElementById("lightboxImage");
-        var label = document.getElementById("lightboxCaption");
-        if (!overlay) return;
-
-        overlay.classList.remove("open");
-        overlay.setAttribute("aria-hidden", "true");
-        document.body.style.overflow = "";
-
-        if (img) img.src = "";
-        if (label) label.textContent = "";
     }
 
     function getReviewClientId() {
@@ -565,32 +486,11 @@
 
     function bindDetailEvents() {
         document.addEventListener("click", function (e) {
-            var lightboxOverlay = e.target.closest("#imageLightbox");
-            if (lightboxOverlay) {
-                if (e.target.closest("#lightboxClose") || e.target === lightboxOverlay) {
-                    closeLightbox();
-                }
-                return;
-            }
-
-            if (e.target.closest("#lightboxClose")) {
-                closeLightbox();
-                return;
-            }
-
             var thumb = e.target.closest(".thumb-item");
             if (thumb) {
                 var thumbIndex = parseInt(thumb.getAttribute("data-index"), 10);
                 if (Number.isInteger(thumbIndex)) {
-                    openLightbox(thumb.getAttribute("data-src") || thumb.getAttribute("src") || "", thumb.getAttribute("alt") || "Product image");
                     setGalleryIndex(thumbIndex, true);
-                }
-            }
-
-            if (e.target.closest("#mainDetailImage")) {
-                var mainImage = document.getElementById("mainDetailImage");
-                if (mainImage && mainImage.getAttribute("src")) {
-                    openLightbox(mainImage.getAttribute("src"), activeProduct && activeProduct.name ? activeProduct.name : "Product image");
                 }
             }
 
@@ -641,12 +541,6 @@
                 stopGalleryAutoSlide();
             } else {
                 startGalleryAutoSlide();
-            }
-        });
-
-        document.addEventListener("keydown", function (event) {
-            if (event.key === "Escape") {
-                closeLightbox();
             }
         });
     }
@@ -1121,7 +1015,6 @@
 
     async function initPage() {
         await pullStoreFromCloud();
-        await startCloudStoreListener();
         var store = readStoreRaw();
         var productId = getProductIdFromUrl();
         if (!productId) {

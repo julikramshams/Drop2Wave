@@ -1,5 +1,7 @@
+﻿
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,44 +11,40 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="../assets/logo.jpeg">
     <link href="../frontend/css/style.css" rel="stylesheet">
-    <link href="../frontend/css/admin-theme.css" rel="stylesheet">
-    <link href="../frontend/css/admin-pages.css" rel="stylesheet">
+    <style>
+        body { background: #f3f6fb; }
+        .admin-shell { max-width: 1250px; margin: 24px auto; }
+        .admin-layout { display: grid; grid-template-columns: 260px 1fr; gap: 16px; }
+        .side-nav { background: #111827; border-radius: 14px; padding: 16px; color: #fff; min-height: 75vh; }
+        .side-nav h5 { color: #fff; }
+        .side-nav .nav-link { color: #e5e7eb; border-radius: 8px; margin-bottom: 6px; }
+        .side-nav .nav-link.active, .side-nav .nav-link:hover { background: #f85606; color: #fff; }
+        .main-panel { background: #fff; border-radius: 14px; padding: 18px; box-shadow: 0 10px 22px rgba(12, 12, 12, 0.08); }
+        .stat-card { border: 1px solid #eceff3; border-radius: 12px; padding: 16px; background: #fff; }
+        .stat-value { font-size: 28px; font-weight: 700; color: #111827; }
+        .muted { color: #6b7280; font-size: 13px; }
+        @media (max-width: 992px) {
+            .admin-layout { grid-template-columns: 1fr; }
+            .side-nav { min-height: auto; }
+        }
+    </style>
 </head>
+
 <body>
     <div class="container-fluid admin-shell">
         <div class="admin-layout">
             <aside class="side-nav">
-                <div class="side-nav-inner">
-                    <div class="side-top side-logo-wrap">
-                        <img src="../assets/logo.jpeg" alt="Drop2Wave" class="side-logo">
-                        <button type="button" class="sidebar-toggle d-none d-lg-inline-flex" id="sidebarToggle" aria-label="Collapse sidebar">
-                            <i class="fas fa-bars"></i>
-                        </button>
-                    </div>
-
-                    <div class="profile-card">
-                        <div class="profile-avatar">A</div>
-                        <div class="profile-text">
-                            <div class="profile-name">Admin Super Admin</div>
-                            <div class="profile-role">super-admin</div>
-                        </div>
-                    </div>
-
-                    <div class="side-scroll">
-                        <ul class="nav flex-column">
-                            <li class="nav-item"><a class="nav-link active" href="index.html"><i class="fas fa-columns nav-icon"></i><span class="nav-label">Dashboard</span></a></li>
-                            <li class="nav-item"><a class="nav-link" href="categories.html"><i class="fas fa-th-large nav-icon"></i><span class="nav-label">Categories</span></a></li>
-                            <li class="nav-item"><a class="nav-link" href="products.html"><i class="fas fa-box-open nav-icon"></i><span class="nav-label">Products</span></a></li>
-                            <li class="nav-item"><a class="nav-link" href="reviews.html"><i class="fas fa-star nav-icon"></i><span class="nav-label">Reviews</span></a></li>
-                            <li class="nav-item"><a class="nav-link" href="orders.html"><i class="fas fa-shopping-bag nav-icon"></i><span class="nav-label">Orders</span></a></li>
-                        </ul>
-                    </div>
-
-                    <div class="side-actions">
-                        <a href="../index.html" class="btn btn-sm btn-outline-light btn-block mb-2"><i class="fas fa-globe"></i> <span class="nav-label">View Website</span></a>
-                        <button type="button" class="btn btn-sm btn-light btn-block" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> <span class="nav-label">Logout</span></button>
-                    </div>
-                </div>
+                <h5 class="mb-3">Drop2Wave Admin</h5>
+                <ul class="nav flex-column">
+                    <li class="nav-item"><a class="nav-link active" href="index.html">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="categories.html">Categories</a></li>
+                    <li class="nav-item"><a class="nav-link" href="products.html">Products</a></li>
+                    <li class="nav-item"><a class="nav-link" href="reviews.html"><i class="fas fa-star"></i> Reviews</a></li>
+                    <li class="nav-item"><a class="nav-link" href="orders.html"><i class="fas fa-shopping-bag"></i> Orders</a></li>
+                </ul>
+                <hr style="border-color: rgba(255,255,255,.15);">
+                <a href="../index.html" class="btn btn-sm btn-outline-light btn-block mb-2">View Website</a>
+                <button type="button" class="btn btn-sm btn-light btn-block" id="logoutBtn">Logout</button>
             </aside>
 
             <main class="main-panel">
@@ -102,25 +100,35 @@
                 </div>
 
                 <div class="row mt-2">
-                    <div class="col-md-4 mb-3">
+                    <div class="col-md-6 mb-3">
                         <div class="stat-card">
                             <h6>Category Management</h6>
                             <p class="muted mb-3">Add, edit, sort and remove categories from a dedicated page.</p>
-                            <a href="products/categories.html" class="btn btn-primary btn-sm">Go To Categories</a>
+                            <a href="categories.html" class="btn btn-primary btn-sm">Go To Categories</a>
                         </div>
                     </div>
-                    <div class="col-md-4 mb-3">
+                    <div class="col-md-6 mb-3">
                         <div class="stat-card">
                             <h6>Product Management</h6>
                             <p class="muted mb-3">Upload products, set prices, assign category and control visibility.</p>
-                            <a href="products/manage.html" class="btn btn-primary btn-sm">Go To Products</a>
+                            <a href="products.html" class="btn btn-primary btn-sm">Go To Products</a>
                         </div>
                     </div>
-                    <div class="col-md-4 mb-3">
+                </div>
+
+                <div class="row mt-2">
+                    <div class="col-md-6 mb-3">
                         <div class="stat-card">
                             <h6><i class="fas fa-star"></i> Reviews</h6>
                             <p class="muted mb-3">Approve customer reviews and publish admin-created product reviews.</p>
                             <a href="reviews.html" class="btn btn-warning btn-sm"><i class="fas fa-comments"></i> Manage Reviews</a>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="stat-card">
+                            <h6><i class="fas fa-shopping-bag"></i> Order Management</h6>
+                            <p class="muted mb-3">View all customer orders, update order status, and track delivery. See customer information, ordered items, pricing details, and payment status.</p>
+                            <a href="orders.html" class="btn btn-success btn-sm"><i class="fas fa-eye"></i> Manage Orders</a>
                         </div>
                     </div>
                 </div>
@@ -128,9 +136,8 @@
                 <div class="row mt-2">
                     <div class="col-md-12 mb-3">
                         <div class="stat-card">
-                            <h6><i class="fas fa-shopping-bag"></i> Order Management</h6>
-                            <p class="muted mb-3">View all customer orders, update order status, and track delivery. See customer information, ordered items, pricing details, and payment status.</p>
-                            <a href="orders.html" class="btn btn-success btn-sm"><i class="fas fa-eye"></i> Manage Orders</a>
+                            <h6>Tip</h6>
+                            <p class="muted mb-0">Customer reviews stay hidden from public until approved in the Reviews panel.</p>
                         </div>
                     </div>
                 </div>
@@ -141,7 +148,7 @@
     <script src="../frontend/lib/jquery/3.4.1/jquery.min.js"></script>
     <script src="../frontend/js/admin-store.js"></script>
     <script src="../frontend/js/checkout.js"></script>
-    <script src="../frontend/js/admin-shell.js"></script>
     <script src="../frontend/js/admin-dashboard.js"></script>
 </body>
+
 </html>

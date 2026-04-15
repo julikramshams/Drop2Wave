@@ -9,48 +9,44 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="../assets/logo.jpeg">
     <link href="../frontend/css/style.css" rel="stylesheet">
-    <link href="../frontend/css/admin-theme.css" rel="stylesheet">
-    <link href="../frontend/css/admin-pages.css" rel="stylesheet">
-    <link rel="canonical" href="products/manage.html">
-    <script>
-        window.location.replace('products/manage.html');
-    </script>
+    <style>
+        body { background: #f3f6fb; }
+        .admin-shell { max-width: 1250px; margin: 24px auto; }
+        .admin-layout { display: grid; grid-template-columns: 260px 1fr; gap: 16px; }
+        .side-nav { background: #111827; border-radius: 14px; padding: 16px; color: #fff; min-height: 75vh; }
+        .side-nav h5 { color: #fff; }
+        .side-nav .nav-link { color: #e5e7eb; border-radius: 8px; margin-bottom: 6px; }
+        .side-nav .nav-link.active, .side-nav .nav-link:hover { background: #f85606; color: #fff; }
+        .main-panel { background: #fff; border-radius: 14px; padding: 18px; box-shadow: 0 10px 22px rgba(12, 12, 12, 0.08); }
+        .card-lite { border: 1px solid #eceff3; border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+        .table td, .table th { font-size: 14px; vertical-align: middle; }
+        .d2w-editor-wrap { border: 1px solid #d1d5db; border-radius: 10px; background: #fff; }
+        .d2w-editor-toolbar { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px; border-bottom: 1px solid #e5e7eb; background: #f9fafb; }
+        .d2w-editor-btn { border: 1px solid #d1d5db; background: #fff; border-radius: 6px; padding: 4px 8px; font-size: 13px; line-height: 1; }
+        .d2w-editor-size { border: 1px solid #d1d5db; border-radius: 6px; padding: 4px 6px; font-size: 13px; }
+        .d2w-editor-color { width: 34px; height: 30px; border: 1px solid #d1d5db; border-radius: 6px; padding: 2px; background: #fff; }
+        .d2w-editor-content { min-height: 110px; padding: 10px; outline: none; font-size: 14px; line-height: 1.5; }
+        @media (max-width: 992px) {
+            .admin-layout { grid-template-columns: 1fr; }
+            .side-nav { min-height: auto; }
+        }
+    </style>
 </head>
 <body>
     <div class="container-fluid admin-shell">
         <div class="admin-layout">
             <aside class="side-nav">
-                <div class="side-nav-inner">
-                    <div class="side-top side-logo-wrap">
-                        <img src="../assets/logo.jpeg" alt="Drop2Wave" class="side-logo">
-                        <button type="button" class="sidebar-toggle d-none d-lg-inline-flex" id="sidebarToggle" aria-label="Collapse sidebar">
-                            <i class="fas fa-bars"></i>
-                        </button>
-                    </div>
-
-                    <div class="profile-card">
-                        <div class="profile-avatar">A</div>
-                        <div class="profile-text">
-                            <div class="profile-name">Admin Super Admin</div>
-                            <div class="profile-role">super-admin</div>
-                        </div>
-                    </div>
-
-                    <div class="side-scroll">
-                        <ul class="nav flex-column">
-                            <li class="nav-item"><a class="nav-link" href="index.html"><i class="fas fa-columns nav-icon"></i><span class="nav-label">Dashboard</span></a></li>
-                            <li class="nav-item"><a class="nav-link" href="categories.html"><i class="fas fa-th-large nav-icon"></i><span class="nav-label">Categories</span></a></li>
-                            <li class="nav-item"><a class="nav-link active" href="products.html"><i class="fas fa-box-open nav-icon"></i><span class="nav-label">Products</span></a></li>
-                            <li class="nav-item"><a class="nav-link" href="reviews.html"><i class="fas fa-star nav-icon"></i><span class="nav-label">Reviews</span></a></li>
-                            <li class="nav-item"><a class="nav-link" href="orders.html"><i class="fas fa-shopping-bag nav-icon"></i><span class="nav-label">Orders</span></a></li>
-                        </ul>
-                    </div>
-
-                    <div class="side-actions">
-                        <a href="../index.html" class="btn btn-sm btn-outline-light btn-block mb-2"><i class="fas fa-globe"></i> <span class="nav-label">View Website</span></a>
-                        <button type="button" class="btn btn-sm btn-light btn-block" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> <span class="nav-label">Logout</span></button>
-                    </div>
-                </div>
+                <h5 class="mb-3">Drop2Wave Admin</h5>
+                <ul class="nav flex-column">
+                    <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="categories.html">Categories</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="products.html">Products</a></li>
+                    <li class="nav-item"><a class="nav-link" href="reviews.html"><i class="fas fa-star"></i> Reviews</a></li>
+                    <li class="nav-item"><a class="nav-link" href="orders.html"><i class="fas fa-shopping-bag"></i> Orders</a></li>
+                </ul>
+                <hr style="border-color: rgba(255,255,255,.15);">
+                <a href="../index.html" class="btn btn-sm btn-outline-light btn-block mb-2">View Website</a>
+                <button type="button" class="btn btn-sm btn-light btn-block" id="logoutBtn">Logout</button>
             </aside>
 
             <main class="main-panel">
@@ -305,7 +301,6 @@
 
     <script src="../frontend/lib/jquery/3.4.1/jquery.min.js"></script>
     <script src="../frontend/js/admin-store.js"></script>
-    <script src="../frontend/js/admin-shell.js"></script>
     <script src="../frontend/js/admin-products.js"></script>
 </body>
 </html>

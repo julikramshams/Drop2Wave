@@ -31,13 +31,6 @@ class OrderManager {
     }
 
     static createOrder(customerData, cartItems, deliveryCharge, subtotal, total) {
-        const sanitizeOrderImage = (rawImage) => {
-            const value = String(rawImage || '').trim();
-            // Data URLs make order storage huge over time. Keep listing fast by not persisting them.
-            if (!value || value.startsWith('data:image/')) return '';
-            return value;
-        };
-
         const order = {
             orderId: this.generateOrderId(),
             orderDate: new Date().toISOString(),
@@ -67,7 +60,7 @@ class OrderManager {
                 price: item.price,
                 quantity: item.quantity,
                 total: item.price * item.quantity,
-                image: sanitizeOrderImage(item.image),
+                image: item.image || null,
                 categoryId: item.categoryId
             })),
 
@@ -79,12 +72,12 @@ class OrderManager {
             },
 
             // Order Status
-            status: 'new', // new, complete, no_response, hold, cancelled, in_courier, delivered
+            status: 'confirmed', // confirmed, processing, shipped, delivered, cancelled
             statusHistory: [
                 {
-                    status: 'new',
+                    status: 'confirmed',
                     timestamp: new Date().toLocaleString('bn-BD'),
-                    note: 'New order received'
+                    note: 'অর্ডার গ্রহণ করা হয়েছে'
                 }
             ]
         };
@@ -113,13 +106,11 @@ class OrderManager {
         
         if (order) {
             const statusMap = {
-                'new': 'New order received',
-                'complete': 'Customer verified and order confirmed',
-                'no_response': 'Customer did not answer call',
-                'hold': 'Order put on hold',
-                'cancelled': 'Order cancelled by customer',
-                'in_courier': 'Order sent to courier',
-                'delivered': 'Order delivered successfully'
+                'confirmed': 'অর্ডার গ্রহণ করা হয়েছে',
+                'processing': 'প্রক্রিয়াকরণ চলছে',
+                'shipped': 'পণ্য পাঠানো হয়েছে',
+                'delivered': 'পণ্য ডেলিভারি করা হয়েছে',
+                'cancelled': 'অর্ডার বাতিল করা হয়েছে'
             };
 
             order.status = newStatus;

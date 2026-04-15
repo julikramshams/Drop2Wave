@@ -5,13 +5,11 @@ $(document).ready(async function() {
     }
 
     const $status = $('#statusMessage');
-    let cloudReviewUnsubscribe = null;
 
     await AdminStore.syncFromCloud();
     loadProductOptions();
     loadReviews();
     setupEvents();
-    startLiveReviewListener();
 
     function compressImageFile(file, maxDimension = 900, quality = 0.72) {
         return new Promise((resolve, reject) => {
@@ -158,30 +156,6 @@ $(document).ready(async function() {
             $('#approvedReviewsList').html('<div class="text-muted">No approved reviews yet.</div>');
         } else {
             $('#approvedReviewsList').html(approved.map(r => renderReviewCard(r, productsMap, true)).join(''));
-        }
-    }
-
-    async function startLiveReviewListener() {
-        try {
-            const ready = await AdminStore.ensureCloudReady();
-            if (!ready || cloudReviewUnsubscribe) return;
-
-            const ref = AdminStore.getCloudDocRef();
-            if (!ref) return;
-
-            cloudReviewUnsubscribe = ref.onSnapshot((snap) => {
-                if (!snap || !snap.exists) return;
-
-                const payload = snap.data() || {};
-                const cloudStore = AdminStore.normalizeStoreShape(payload.store || {});
-                localStorage.setItem(AdminStore.STORE_KEY, JSON.stringify(cloudStore));
-                loadProductOptions();
-                loadReviews();
-            }, (err) => {
-                console.warn('Live review listener failed.', err);
-            });
-        } catch (err) {
-            console.warn('Unable to start live review listener.', err);
         }
     }
 

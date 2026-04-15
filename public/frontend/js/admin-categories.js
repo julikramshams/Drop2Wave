@@ -3,12 +3,9 @@
  */
 
 $(document).ready(async function() {
-    const isNestedProductsPage = window.location.pathname.toLowerCase().indexOf('/admin/products/') !== -1;
-    const loginPath = isNestedProductsPage ? '../login.html' : 'login.html';
-
     // Check authentication
     if (!AdminStore.isAuthenticated()) {
-        window.location.href = loginPath;
+        window.location.href = 'login.html';
         return;
     }
     
@@ -172,7 +169,7 @@ $(document).ready(async function() {
         $(document).on('click', '#logoutBtn', function() {
             if (confirm('Logout from admin panel?')) {
                 AdminStore.clearSession();
-                window.location.href = loginPath;
+                window.location.href = 'login.html';
             }
         });
     }
