@@ -35,6 +35,33 @@ $(document).ready(function() {
         localStorage.setItem(INCOMPLETE_KEY, JSON.stringify(Array.isArray(list) ? list : []));
     }
 
+    async function syncIncompleteUniversalStrict(previousList) {
+        const hasUniversal = window.UniversalData && typeof window.UniversalData.pushIncompleteFromLocal === 'function';
+        if (!hasUniversal) {
+            writeList(previousList || []);
+            alert('Universal sync is not available on this page. Changes were not saved.');
+            return false;
+        }
+
+        if (typeof window.UniversalData.ensureCloudReady === 'function') {
+            const ready = await window.UniversalData.ensureCloudReady().catch(() => false);
+            if (!ready) {
+                writeList(previousList || []);
+                alert('Cloud connection failed. Changes were not saved universally.');
+                return false;
+            }
+        }
+
+        const pushed = await window.UniversalData.pushIncompleteFromLocal().catch(() => false);
+        if (!pushed) {
+            writeList(previousList || []);
+            alert('Could not sync incomplete data to universal storage. Please try again.');
+            return false;
+        }
+
+        return true;
+    }
+
     function esc(text) {
         return String(text || '')
             .replace(/&/g, '&amp;')
@@ -58,10 +85,12 @@ $(document).ready(function() {
             return;
         }
 
-        const html = list.map((entry, idx) => {
+        const rows = list.map((entry, idx) => {
             const c = entry.customer || {};
             const items = Array.isArray(entry.items) ? entry.items : [];
             const totalQty = items.reduce((sum, item) => sum + (Number(item.quantity || 0) || 0), 0);
+            const firstItem = items.length ? String(items[0].name || 'Item') : '-';
+            const itemText = items.length ? `${firstItem}${items.length > 1 ? ` +${items.length - 1} more` : ''} (${totalQty} qty)` : '-';
             const hasMissing = [];
             if (!String(c.name || '').trim()) hasMissing.push('name');
             if (!String(c.phone || '').trim()) hasMissing.push('phone');
@@ -69,46 +98,68 @@ $(document).ready(function() {
             if (!items.length) hasMissing.push('items');
 
             return `
-                <div class="review-card">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <strong>Attempt ${idx + 1}</strong>
-                        <span class="badge badge-warning">Incomplete</span>
-                    </div>
-                    <div class="review-meta">
-                        Last Updated: <strong>${esc(fmt(entry.updatedAt))}</strong> | Started: ${esc(fmt(entry.createdAt))}
-                    </div>
-                    <div class="mt-2"><strong>Customer:</strong> ${esc(c.name || '-')} | ${esc(c.phone || '-')}</div>
-                    <div><strong>Address:</strong> ${esc(c.address || '-')}</div>
-                    <div><strong>Items:</strong> ${items.length} products (${totalQty} qty)</div>
-                    <div><strong>Missing:</strong> ${hasMissing.length ? esc(hasMissing.join(', ')) : 'none'}</div>
-                    <div class="mt-2 text-muted" style="font-size:12px;">Source: checkout form closed/left before confirm.</div>
-                    <div class="mt-3">
+                <tr>
+                    <td>${idx + 1}</td>
+                    <td>${esc(c.name || '-')}</td>
+                    <td>${esc(c.phone || '-')}</td>
+                    <td style="max-width:260px;">${esc(c.address || '-')}</td>
+                    <td style="min-width:220px;">${esc(itemText)}</td>
+                    <td><span class="badge badge-warning">${hasMissing.length ? esc(hasMissing.join(', ')) : 'none'}</span></td>
+                    <td>${esc(fmt(entry.updatedAt))}</td>
+                    <td>${esc(fmt(entry.createdAt))}</td>
+                    <td>
                         <button class="btn btn-outline-danger btn-sm delete-incomplete" data-id="${esc(entry.id)}"><i class="fas fa-trash"></i> Delete</button>
-                    </div>
-                </div>
+                    </td>
+                </tr>
             `;
         }).join('');
 
-        $('#incompleteList').html(html);
+        $('#incompleteList').html(`
+            <div class="table-responsive admin-table-wrap">
+                <table class="table table-hover table-bordered mb-0 admin-record-table">
+                    <thead>
+                        <tr>
+                            <th>SL</th>
+                            <th>Customer</th>
+                            <th>Phone</th>
+                            <th>Address</th>
+                            <th>Products</th>
+                            <th>Missing</th>
+                            <th>Last Updated</th>
+                            <th>Started</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>
+            <div class="text-muted mt-2" style="font-size:12px;">Source: checkout form closed or left before confirm.</div>
+        `);
     }
 
     function setupEvents() {
-        $(document).on('click', '.delete-incomplete', function() {
+        $(document).on('click', '.delete-incomplete', async function() {
             const id = String($(this).data('id') || '');
-            const list = readList().filter(item => String(item.id) !== id);
+            const previousList = readList();
+            const list = previousList.filter(item => String(item.id) !== id);
             writeList(list);
-            if (window.UniversalData && typeof window.UniversalData.pushIncompleteFromLocal === 'function') {
-                window.UniversalData.pushIncompleteFromLocal().catch(() => {});
+            const synced = await syncIncompleteUniversalStrict(previousList);
+            if (!synced) {
+                loadIncomplete();
+                return;
             }
             loadIncomplete();
             showStatus('Incomplete attempt deleted.', 'info');
         });
 
-        $(document).on('click', '#clearIncompleteBtn', function() {
+        $(document).on('click', '#clearIncompleteBtn', async function() {
             if (!confirm('Clear all incomplete attempts?')) return;
+            const previousList = readList();
             writeList([]);
-            if (window.UniversalData && typeof window.UniversalData.pushIncompleteFromLocal === 'function') {
-                window.UniversalData.pushIncompleteFromLocal().catch(() => {});
+            const synced = await syncIncompleteUniversalStrict(previousList);
+            if (!synced) {
+                loadIncomplete();
+                return;
             }
             loadIncomplete();
             showStatus('All incomplete attempts cleared.', 'success');

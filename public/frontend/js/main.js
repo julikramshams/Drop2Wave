@@ -17,6 +17,130 @@
     var cloudInitPromise = null;
     var activeCategorySlugs = [];
     var categoryNameBySlug = {};
+    var loadingState = {
+        count: 0,
+        timer: null,
+        visible: false,
+        noteTimer: null,
+        noteIndex: 0
+    };
+    var loadingNotes = [
+        "Bringing the freshest products for you...",
+        "Checking latest stock and prices...",
+        "Preparing a smoother shopping experience...",
+        "Almost there, polishing your storefront...",
+        "Loading new arrivals and hot deals...",
+        "Syncing everything for this session..."
+    ];
+
+    function setLoadingNote(index) {
+        var noteEl = document.getElementById("d2wPageLoadingNote");
+        if (!noteEl) return;
+        var safeList = loadingNotes.length ? loadingNotes : ["Loading..."];
+        var i = Math.max(0, Number(index || 0) % safeList.length);
+        noteEl.textContent = safeList[i];
+    }
+
+    function stopLoadingNotes() {
+        if (loadingState.noteTimer) {
+            clearInterval(loadingState.noteTimer);
+            loadingState.noteTimer = null;
+        }
+    }
+
+    function startLoadingNotes() {
+        stopLoadingNotes();
+        setLoadingNote(loadingState.noteIndex);
+        loadingState.noteTimer = setInterval(function () {
+            loadingState.noteIndex = (loadingState.noteIndex + 1) % Math.max(1, loadingNotes.length);
+            setLoadingNote(loadingState.noteIndex);
+        }, 2600);
+    }
+
+    function ensureGlobalLoadingOverlay() {
+        if (document.getElementById("d2wPageLoadingOverlay")) return;
+
+        var style = document.createElement("style");
+        style.id = "d2wPageLoadingStyle";
+        style.textContent = [
+            "#d2wPageLoadingOverlay{position:fixed;inset:0;background:radial-gradient(circle at 20% 20%,rgba(37,99,235,.23),transparent 42%),radial-gradient(circle at 80% 80%,rgba(248,86,6,.2),transparent 44%),rgba(2,6,23,.5);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:999999;}",
+            "#d2wPageLoadingOverlay.show{display:flex;}",
+            ".d2w-loading-box{width:220px;height:220px;max-width:86vw;max-height:86vw;background:linear-gradient(160deg,rgba(255,255,255,.92),rgba(255,255,255,.84));border:1px solid rgba(255,255,255,.55);border-radius:18px;padding:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;box-shadow:0 24px 56px rgba(0,0,0,.22);font-size:14px;font-weight:600;color:#0f172a;position:relative;overflow:hidden;text-align:center;}",
+            ".d2w-loading-box:before{content:'';position:absolute;inset:0;transform:translateX(-110%);background:linear-gradient(115deg,transparent,rgba(255,255,255,.45),transparent);animation:d2wShimmer 1.6s ease-in-out infinite;}",
+            ".d2w-loading-spinner{width:22px;height:22px;border:2.5px solid rgba(37,99,235,.22);border-top-color:#2563eb;border-right-color:#f85606;border-radius:999px;animation:d2wSpin .72s linear infinite;flex:0 0 auto;}",
+            ".d2w-loading-meta{display:flex;flex-direction:column;line-height:1.2;gap:4px;}",
+            ".d2w-loading-sub{font-size:11px;font-weight:500;color:#64748b;letter-spacing:.2px;}",
+            "#d2wPageLoadingText{font-size:15px;font-weight:700;}",
+            "#d2wPageLoadingNote{font-size:12px;color:#334155;line-height:1.35;min-height:34px;max-width:180px;display:flex;align-items:center;justify-content:center;}",
+            "@keyframes d2wSpin{to{transform:rotate(360deg);}}",
+            "@keyframes d2wShimmer{100%{transform:translateX(110%);}}"
+        ].join("");
+        document.head.appendChild(style);
+
+        var overlay = document.createElement("div");
+        overlay.id = "d2wPageLoadingOverlay";
+        overlay.setAttribute("aria-live", "polite");
+        overlay.innerHTML = '<div class="d2w-loading-box"><span class="d2w-loading-spinner" aria-hidden="true"></span><div class="d2w-loading-meta"><span id="d2wPageLoadingText">Loading...</span><span class="d2w-loading-sub">Please wait a moment</span><span id="d2wPageLoadingNote">Bringing the freshest products for you...</span></div></div>';
+        document.body.appendChild(overlay);
+    }
+
+    function openGlobalLoading(message, delayMs) {
+        ensureGlobalLoadingOverlay();
+        var delay = Number(delayMs || 180);
+        var overlay = document.getElementById("d2wPageLoadingOverlay");
+        var textEl = document.getElementById("d2wPageLoadingText");
+
+        loadingState.count += 1;
+        if (textEl && message) {
+            textEl.textContent = String(message);
+        }
+
+        if (loadingState.count === 1) {
+            loadingState.noteIndex = Math.floor(Math.random() * Math.max(1, loadingNotes.length));
+            setLoadingNote(loadingState.noteIndex);
+        }
+
+        if (!loadingState.visible && !loadingState.timer) {
+            loadingState.timer = setTimeout(function () {
+                loadingState.timer = null;
+                if (loadingState.count > 0 && overlay) {
+                    overlay.classList.add("show");
+                    loadingState.visible = true;
+                    startLoadingNotes();
+                }
+            }, Math.max(0, delay));
+        }
+
+        return function closeGlobalLoading() {
+            loadingState.count = Math.max(0, loadingState.count - 1);
+            if (loadingState.count > 0) return;
+
+            if (loadingState.timer) {
+                clearTimeout(loadingState.timer);
+                loadingState.timer = null;
+            }
+
+            if (overlay) overlay.classList.remove("show");
+            loadingState.visible = false;
+            stopLoadingNotes();
+        };
+    }
+
+    function withTimeout(promise, timeoutMs, fallbackValue) {
+        var timeout = Number(timeoutMs || 0);
+        if (!timeout || timeout < 1) return promise;
+
+        return Promise.race([
+            promise,
+            new Promise(function (resolve) {
+                setTimeout(function () { resolve(fallbackValue); }, timeout);
+            })
+        ]);
+    }
+
+    window.D2WLoading = {
+        open: openGlobalLoading
+    };
 
     function getCategoryBrowsePath() {
         var path = (window.location.pathname || "").toLowerCase();
@@ -1163,16 +1287,42 @@
         });
     }
 
-    $(document).ready(function () {
+    $(document).ready(async function () {
+        /* Loading window disabled on non-product pages.
+        ensureGlobalLoadingOverlay();
+        var closeBootLoading = openGlobalLoading("Loading latest products...", 220);
+        */
+        var closeBootLoading = function () {};
+
         bindCategoryFilterEvents();
         bootstrapStoreFromExistingMarkup();
         renderStorefrontFromAdmin();
-        pullStoreFromCloud();
+
+        pullStoreFromCloud().then(function () {
+            syncStorefrontIfChanged();
+        }).catch(function () {});
+
         initThemeFeatures();
         ensureCartModal();
         bindCartEvents();
         setupSearchForms();
         updateCartBadge();
+        closeBootLoading();
+
+        $(document).on("click", "a[href]", function (e) {
+            if (e.isDefaultPrevented && e.isDefaultPrevented()) return;
+            if (e.which && e.which !== 1) return;
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+
+            var $link = $(this);
+            var href = String($link.attr("href") || "").trim();
+            if (!href || href.charAt(0) === "#") return;
+            if (/^(javascript:|mailto:|tel:)/i.test(href)) return;
+            if (String($link.attr("target") || "").toLowerCase() === "_blank") return;
+            if ($link.is("[download]")) return;
+
+            // Loading window disabled everywhere except product page; keep navigation instant.
+        });
 
         // Keep storefront synced when admin updates data in another tab/window.
         window.addEventListener("storage", function (event) {

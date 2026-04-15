@@ -1120,8 +1120,6 @@
     }
 
     async function initPage() {
-        await pullStoreFromCloud();
-        await startCloudStoreListener();
         var store = readStoreRaw();
         var productId = getProductIdFromUrl();
         if (!productId) {
@@ -1135,11 +1133,24 @@
 
         if (!product) {
             renderNotFound();
-            return;
+        } else {
+            activeProduct = product;
+            renderProduct(product, store);
         }
 
-        activeProduct = product;
-        renderProduct(product, store);
+        pullStoreFromCloud().then(function () {
+            return startCloudStoreListener();
+        }).then(function () {
+            var freshStore = readStoreRaw();
+            var freshProduct = (freshStore.products || []).find(function (p) {
+                return String(p.id) === String(productId) && p.isActive !== false;
+            });
+
+            if (freshProduct && activeProduct && String(freshProduct.updatedAt || freshProduct.id || '') !== String(activeProduct.updatedAt || activeProduct.id || '')) {
+                activeProduct = freshProduct;
+                renderProduct(freshProduct, freshStore);
+            }
+        }).catch(function () {});
     }
 
     bindDetailEvents();

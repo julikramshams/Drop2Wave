@@ -165,30 +165,64 @@ $(document).ready(async function() {
         $('#reviewProductId').html(options.join(''));
     }
 
-    function renderReviewCard(review, productsMap, allowActions) {
+    function renderReviewRow(review, productsMap, allowActions, idx) {
         const product = productsMap[String(review.productId)] || {};
         const images = Array.isArray(review.images) ? review.images : [];
         const statusClass = review.status === 'approved' ? 'badge-approved' : review.status === 'rejected' ? 'badge-rejected' : 'badge-pending';
+        const preview = String(review.text || '').trim();
+        const shortText = preview.length > 110 ? `${preview.slice(0, 110)}...` : preview;
+        const thumb = images.length ? `<img src="${images[0]}" alt="Review image" style="width:30px;height:30px;object-fit:cover;border-radius:6px;border:1px solid #d1d5db;">` : '<span class="text-muted">-</span>';
 
         return `
-            <div class="review-card">
-                <div class="d-flex justify-content-between align-items-center mb-1">
-                    <strong>${escapeHtml(review.authorName || 'Anonymous')}</strong>
-                    <span class="badge ${statusClass}">${escapeHtml(review.status || 'pending')}</span>
-                </div>
-                <div class="review-meta">
-                    Product: <strong>${escapeHtml(product.name || 'Unknown Product')}</strong> | ${escapeHtml(formatDate(review.createdAt))} | Source: ${escapeHtml(review.source || 'customer')}
-                </div>
-                <div class="review-stars">${getStars(review.rating)}</div>
-                <div class="mt-1">${escapeHtml(review.text || '')}</div>
-                ${images.length ? `<div class="review-images">${images.map(src => `<img src="${src}" alt="Review image">`).join('')}</div>` : ''}
-                ${allowActions ? `
-                    <div class="mt-3">
-                        <button class="btn btn-success btn-sm approve-review" data-id="${review.id}"><i class="fas fa-check"></i> Approve</button>
-                        <button class="btn btn-outline-danger btn-sm reject-review" data-id="${review.id}"><i class="fas fa-times"></i> Reject</button>
-                        <button class="btn btn-outline-secondary btn-sm delete-review" data-id="${review.id}"><i class="fas fa-trash"></i> Delete</button>
-                    </div>
-                ` : ''}
+            <tr>
+                <td>${idx + 1}</td>
+                <td style="min-width:170px;">
+                    <div style="font-weight:600;">${escapeHtml(review.authorName || 'Anonymous')}</div>
+                    <div class="text-muted" style="font-size:11px;">${escapeHtml(review.source || 'customer')}</div>
+                </td>
+                <td style="min-width:220px;">${escapeHtml(product.name || 'Unknown Product')}</td>
+                <td><span class="review-stars">${getStars(review.rating)}</span></td>
+                <td style="min-width:280px;">${escapeHtml(shortText || '-')}</td>
+                <td class="text-center">${thumb}</td>
+                <td>${escapeHtml(formatDate(review.createdAt))}</td>
+                <td><span class="badge ${statusClass}">${escapeHtml(review.status || 'pending')}</span></td>
+                <td>
+                    ${allowActions ? `
+                        <div class="d-flex align-items-center" style="gap:6px;">
+                            <button class="btn btn-success btn-sm approve-review" data-id="${review.id}" title="Approve"><i class="fas fa-check"></i></button>
+                            <button class="btn btn-outline-danger btn-sm reject-review" data-id="${review.id}" title="Reject"><i class="fas fa-times"></i></button>
+                            <button class="btn btn-outline-secondary btn-sm delete-review" data-id="${review.id}" title="Delete"><i class="fas fa-trash"></i></button>
+                        </div>
+                    ` : '<span class="text-muted">-</span>'}
+                </td>
+            </tr>
+        `;
+    }
+
+    function renderReviewsTable(reviews, productsMap, allowActions) {
+        if (!reviews.length) {
+            return '<div class="text-muted">No reviews found yet.</div>';
+        }
+
+        const rows = reviews.map((review, idx) => renderReviewRow(review, productsMap, allowActions, idx)).join('');
+        return `
+            <div class="table-responsive admin-table-wrap">
+                <table class="table table-hover table-bordered mb-0 admin-record-table">
+                    <thead>
+                        <tr>
+                            <th>SL</th>
+                            <th>Customer</th>
+                            <th>Product</th>
+                            <th>Rating</th>
+                            <th>Review</th>
+                            <th>Image</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
             </div>
         `;
     }
@@ -205,13 +239,13 @@ $(document).ready(async function() {
         if (!pending.length) {
             $('#pendingReviewsList').html('<div class="text-muted">No pending customer reviews.</div>');
         } else {
-            $('#pendingReviewsList').html(pending.map(r => renderReviewCard(r, productsMap, true)).join(''));
+            $('#pendingReviewsList').html(renderReviewsTable(pending, productsMap, true));
         }
 
         if (!all.length) {
             $('#allReviewsList').html('<div class="text-muted">No reviews found yet.</div>');
         } else {
-            $('#allReviewsList').html(all.map(r => renderReviewCard(r, productsMap, true)).join(''));
+            $('#allReviewsList').html(renderReviewsTable(all, productsMap, true));
         }
     }
 

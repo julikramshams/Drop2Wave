@@ -28,9 +28,27 @@ function saveOrdersRaw(data) {
     }
 }
 
+function removeOrderLocalOnly(orderId) {
+    try {
+        const data = readOrdersRaw();
+        data.orders = (data.orders || []).filter(o => String(o.orderId) !== String(orderId));
+        localStorage.setItem('drop2wave_orders_v1', JSON.stringify(data));
+    } catch (e) {
+        console.warn('Failed to rollback local order after universal sync failure.', e);
+    }
+}
+
 class OrderManager {
     static generateOrderId() {
-        return 'ORD-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        const orders = this.getAllOrders();
+        const used = new Set((orders || []).map(o => String(o.invoiceNumber || o.orderId || '').replace(/\D/g, '').slice(-6)).filter(v => /^\d{6}$/.test(v)));
+
+        for (let i = 0; i < 3000; i += 1) {
+            const candidate = String(Math.floor(100000 + Math.random() * 900000));
+            if (!used.has(candidate)) return candidate;
+        }
+
+        return String(Math.floor(100000 + Math.random() * 900000));
     }
 
     static createOrder(customerData, cartItems, deliveryCharge, subtotal, total) {
@@ -41,8 +59,10 @@ class OrderManager {
             return value;
         };
 
+        const invoiceNo = this.generateOrderId();
         const order = {
-            orderId: this.generateOrderId(),
+            orderId: invoiceNo,
+            invoiceNumber: invoiceNo,
             orderDate: new Date().toISOString(),
             orderTimestamp: Date.now(),
             orderTime: new Date().toLocaleString('bn-BD', {
@@ -401,7 +421,7 @@ function removeCheckoutItem(itemId) {
 
 function updateCheckoutSummary(subtotal) {
     const deliveryChargeSelect = document.getElementById('deliveryCharge');
-    const deliveryCharge = parseInt(deliveryChargeSelect?.value || 60);
+    const deliveryCharge = parseInt(deliveryChargeSelect?.value || 70);
     const total = subtotal + deliveryCharge;
 
     // Update form field
@@ -469,7 +489,7 @@ function setupFormSubmission() {
     });
 }
 
-function processOrder() {
+async function processOrder() {
     if (!validateCheckoutForm()) return;
 
     try {
@@ -494,13 +514,13 @@ function processOrder() {
             name: document.getElementById('customerName').value.trim(),
             phone: document.getElementById('customerPhone').value.trim(),
             address: document.getElementById('customerAddress').value.trim(),
-            deliveryArea: document.getElementById('deliveryCharge')?.value || 'dhaka-60'
+            deliveryArea: document.getElementById('deliveryCharge')?.value || '70'
         };
 
         // Use stored checkout data
         const checkoutData = window.checkoutData || {
             subtotal: cartItems.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0),
-            deliveryCharge: parseInt(document.getElementById('deliveryCharge')?.value || 60),
+            deliveryCharge: parseInt(document.getElementById('deliveryCharge')?.value || 70),
             total: 0
         };
         checkoutData.total = checkoutData.subtotal + checkoutData.deliveryCharge;
@@ -518,6 +538,35 @@ function processOrder() {
         const orderSaved = OrderManager.addOrder(order);
 
         if (orderSaved) {
+            const hasUniversal = window.UniversalData && typeof window.UniversalData.pushOrdersFromLocal === 'function';
+            if (!hasUniversal) {
+                removeOrderLocalOnly(order.orderId);
+                alert('Universal order sync is unavailable. Please try again.');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                return;
+            }
+
+            if (typeof window.UniversalData.ensureCloudReady === 'function') {
+                const ready = await window.UniversalData.ensureCloudReady().catch(() => false);
+                if (!ready) {
+                    removeOrderLocalOnly(order.orderId);
+                    alert('Cloud connection failed. Order was not saved universally.');
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                    return;
+                }
+            }
+
+            const pushed = await window.UniversalData.pushOrdersFromLocal().catch(() => false);
+            if (!pushed) {
+                removeOrderLocalOnly(order.orderId);
+                alert('Could not save order to universal storage. Please try again.');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                return;
+            }
+
             // Clear cart
             localStorage.removeItem('drop2wave_cart_v1');
             IncompleteOrderTracker.removeCurrentDraft();
@@ -551,7 +600,7 @@ function showSuccessMessage(order) {
             </div>
             <h2 style="color: #155724; margin-bottom: 10px;">অর্ডার সফলভাবে সম্পন্ন!</h2>
             <p style="color: #155724; margin-bottom: 15px; font-size: 16px;">
-                অর্ডার নম্বর: <strong>${order.orderId}</strong>
+                ইনভয়েস নম্বর: <strong>${order.invoiceNumber || order.orderId}</strong>
             </p>
             <p style="color: #155724; margin-bottom: 20px; font-size: 14px;">
                 ${order.orderTime}
