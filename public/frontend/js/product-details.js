@@ -3,6 +3,7 @@
 
     var STORE_KEY = "drop2wave_store_v1";
     var CART_KEY = "drop2wave_cart_v1";
+    var REVIEW_CLIENT_KEY = "drop2wave_review_client_v1";
     var CLOUD_COLLECTION = "drop2wave";
     var CLOUD_DOCUMENT = "store";
     var FIREBASE_CONFIG = {
@@ -15,6 +16,8 @@
 
     var cloudInitPromise = null;
     var activeProduct = null;
+    var cloudStoreUnsubscribe = null;
+    var cloudListenerPrimed = false;
     var galleryState = {
         images: [],
         index: 0,
@@ -96,15 +99,16 @@
         var normalized = store && typeof store === "object" ? store : {};
         if (!Array.isArray(normalized.categories)) normalized.categories = [];
         if (!Array.isArray(normalized.products)) normalized.products = [];
+        if (!Array.isArray(normalized.reviews)) normalized.reviews = [];
         return normalized;
     }
 
     function readStoreRaw() {
         try {
             var raw = localStorage.getItem(STORE_KEY);
-            return raw ? normalizeStoreShape(JSON.parse(raw)) : { categories: [], products: [] };
+            return raw ? normalizeStoreShape(JSON.parse(raw)) : { categories: [], products: [], reviews: [] };
         } catch (e) {
-            return { categories: [], products: [] };
+            return { categories: [], products: [], reviews: [] };
         }
     }
 
@@ -122,11 +126,369 @@
             if (!snap.exists) return false;
 
             var payload = snap.data() || {};
-            saveStoreRaw(payload.store || { categories: [], products: [] });
+            saveStoreRaw(payload.store || { categories: [], products: [], reviews: [] });
             return true;
         } catch (err) {
             console.warn("Failed to pull details store from cloud.", err);
             return false;
+        }
+    }
+
+    async function startCloudStoreListener() {
+        var ready = await ensureCloudReady();
+        if (!ready || cloudStoreUnsubscribe) return;
+
+        try {
+            var db = window.firebase.firestore();
+            var ref = db.collection(CLOUD_COLLECTION).doc(CLOUD_DOCUMENT);
+
+            cloudStoreUnsubscribe = ref.onSnapshot(function (snap) {
+                if (!snap || !snap.exists) return;
+
+                var payload = snap.data() || {};
+                saveStoreRaw(payload.store || { categories: [], products: [], reviews: [] });
+
+                if (activeProduct) {
+                    var store = readStoreRaw();
+                    renderReviewList(activeProduct.id, store);
+                }
+
+                if (cloudListenerPrimed) {
+                    flashReviewSyncNote();
+                } else {
+                    cloudListenerPrimed = true;
+                }
+            }, function (err) {
+                console.warn("Live store listener failed.", err);
+            });
+        } catch (err) {
+            console.warn("Unable to start live store listener.", err);
+        }
+    }
+
+    async function pushStoreToCloud(store) {
+        var ready = await ensureCloudReady();
+        if (!ready) return false;
+
+        try {
+            var db = window.firebase.firestore();
+            await db.collection(CLOUD_COLLECTION).doc(CLOUD_DOCUMENT).set({
+                store: normalizeStoreShape(store),
+                updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+            return true;
+        } catch (err) {
+            console.warn("Failed to push details store to cloud.", err);
+            return false;
+        }
+    }
+
+    function flashReviewSyncNote() {
+        var note = document.getElementById("reviewSyncNote");
+        if (!note) return;
+
+        note.style.display = "block";
+        note.textContent = "Updated just now";
+
+        if (note._hideTimer) {
+            clearTimeout(note._hideTimer);
+        }
+
+        note._hideTimer = setTimeout(function () {
+            note.style.display = "none";
+        }, 2200);
+    }
+
+    function openLightbox(src, caption) {
+        var overlay = document.getElementById("imageLightbox");
+        var img = document.getElementById("lightboxImage");
+        var label = document.getElementById("lightboxCaption");
+        if (!overlay || !img || !src) return;
+
+        img.src = src;
+        img.alt = caption || "Product image";
+        if (label) label.textContent = caption || "";
+
+        overlay.classList.add("open");
+        overlay.setAttribute("aria-hidden", "false");
+        document.body.style.overflow = "hidden";
+    }
+
+    function closeLightbox() {
+        var overlay = document.getElementById("imageLightbox");
+        var img = document.getElementById("lightboxImage");
+        var label = document.getElementById("lightboxCaption");
+        if (!overlay) return;
+
+        overlay.classList.remove("open");
+        overlay.setAttribute("aria-hidden", "true");
+        document.body.style.overflow = "";
+
+        if (img) img.src = "";
+        if (label) label.textContent = "";
+    }
+
+    function getReviewClientId() {
+        var existing = localStorage.getItem(REVIEW_CLIENT_KEY);
+        if (existing) return existing;
+
+        var nextId = "rc_" + String(Date.now()) + "_" + String(Math.floor(Math.random() * 100000));
+        localStorage.setItem(REVIEW_CLIENT_KEY, nextId);
+        return nextId;
+    }
+
+    function formatReviewDate(ts) {
+        var date = new Date(Number(ts || Date.now()));
+        if (isNaN(date.getTime())) return "Just now";
+        return date.toLocaleString();
+    }
+
+    function getStarText(rating) {
+        var r = Math.max(1, Math.min(5, Number(rating || 0)));
+        return "★".repeat(r) + "☆".repeat(5 - r);
+    }
+
+    function getCurrentProductReviews(store, productId) {
+        var clientId = getReviewClientId();
+        var reviews = (store.reviews || []).filter(function (review) {
+            return String(review.productId) === String(productId);
+        });
+
+        return reviews.filter(function (review) {
+            if (String(review.status) === "approved") return true;
+            if (String(review.status) === "pending" && String(review.clientId || "") === String(clientId)) return true;
+            return false;
+        }).sort(function (a, b) {
+            return Number(b.createdAt || 0) - Number(a.createdAt || 0);
+        });
+    }
+
+    function renderReviewList(productId, store) {
+        var host = document.getElementById("reviewList");
+        if (!host) return;
+
+        var list = getCurrentProductReviews(store, productId);
+        if (!list.length) {
+            host.innerHTML = '<div class="text-muted">No reviews yet. Be the first one to review this product.</div>';
+            return;
+        }
+
+        host.innerHTML = list.map(function (review) {
+            var images = Array.isArray(review.images) ? review.images : [];
+
+            return [
+                '<div class="review-item">',
+                '  <div class="d-flex justify-content-between align-items-center">',
+                '    <strong>' + escapeHtml(review.authorName || "Anonymous") + '</strong>',
+                '    <span class="review-meta">' + escapeHtml(formatReviewDate(review.createdAt)) + '</span>',
+                '  </div>',
+                '  <div class="review-rating">' + escapeHtml(getStarText(review.rating)) + '</div>',
+                '  <div class="mt-1">' + escapeHtml(review.text || "") + '</div>',
+                images.length ? ('  <div class="review-images">' + images.map(function (src) {
+                    return '<img src="' + escapeHtml(src) + '" alt="Review image">';
+                }).join("") + '</div>') : "",
+                '</div>'
+            ].join("\n");
+        }).join("\n");
+    }
+
+    function getPendingImageList() {
+        try {
+            var parsed = JSON.parse((document.getElementById("reviewerImageData") || {}).value || "[]");
+            return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+        } catch (err) {
+            return [];
+        }
+    }
+
+    function setPendingImageList(images) {
+        var input = document.getElementById("reviewerImageData");
+        if (!input) return;
+        input.value = JSON.stringify(Array.isArray(images) ? images : []);
+        renderPendingImagePreview();
+    }
+
+    function renderPendingImagePreview() {
+        var host = document.getElementById("reviewerImagePreview");
+        if (!host) return;
+
+        var images = getPendingImageList();
+        if (!images.length) {
+            host.innerHTML = "";
+            host.style.display = "none";
+            return;
+        }
+
+        host.innerHTML = images.map(function (src, idx) {
+            return [
+                '<div style="position:relative;">',
+                '  <img src="' + escapeHtml(src) + '" alt="Preview ' + (idx + 1) + '">',
+                '  <button type="button" class="btn btn-sm btn-danger" data-remove-review-image="' + idx + '" style="position:absolute;top:-8px;right:-8px;line-height:1;padding:1px 6px;">&times;</button>',
+                '</div>'
+            ].join("\n");
+        }).join("\n");
+        host.style.display = "flex";
+    }
+
+    function compressImageFile(file, maxDimension, quality) {
+        var nextMaxDimension = Number(maxDimension || 900);
+        var nextQuality = Number(quality || 0.72);
+
+        return new Promise(function (resolve, reject) {
+            var reader = new FileReader();
+            reader.onerror = function () { reject(new Error("Failed to read image file")); };
+            reader.onload = function (event) {
+                var img = new Image();
+                img.onerror = function () { reject(new Error("Invalid image file")); };
+                img.onload = function () {
+                    var ratio = Math.min(1, nextMaxDimension / Math.max(img.width, img.height));
+                    var width = Math.max(1, Math.round(img.width * ratio));
+                    var height = Math.max(1, Math.round(img.height * ratio));
+
+                    var canvas = document.createElement("canvas");
+                    canvas.width = width;
+                    canvas.height = height;
+                    var ctx = canvas.getContext("2d");
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    var q = nextQuality;
+                    var output = canvas.toDataURL("image/jpeg", q);
+                    while (output.length > 220000 && q > 0.45) {
+                        q -= 0.07;
+                        output = canvas.toDataURL("image/jpeg", q);
+                    }
+
+                    resolve(output);
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function handleReviewerImageSelection(inputEl) {
+        var files = inputEl && inputEl.files ? Array.prototype.slice.call(inputEl.files) : [];
+        if (!files.length) return;
+
+        var current = getPendingImageList();
+        for (var i = 0; i < files.length; i += 1) {
+            try {
+                var dataUrl = await compressImageFile(files[i]);
+                current.push(dataUrl);
+            } catch (err) {
+                console.warn("Skipping invalid review image", err);
+            }
+        }
+
+        setPendingImageList(current);
+        if (inputEl) inputEl.value = "";
+    }
+
+    async function submitCustomerReview() {
+        if (!activeProduct) return;
+
+        var nameEl = document.getElementById("reviewerName");
+        var ratingEl = document.getElementById("reviewerRating");
+        var textEl = document.getElementById("reviewerText");
+
+        var authorName = String((nameEl || {}).value || "").trim();
+        var rating = Number((ratingEl || {}).value || 5);
+        var text = String((textEl || {}).value || "").trim();
+        var images = getPendingImageList();
+
+        if (!authorName || !text) {
+            alert("Please provide your name and review text.");
+            return;
+        }
+
+        var store = readStoreRaw();
+        if (!Array.isArray(store.reviews)) store.reviews = [];
+
+        var review = {
+            id: "rev_" + Date.now() + "_" + Math.floor(Math.random() * 10000),
+            productId: activeProduct.id,
+            authorName: authorName,
+            rating: Math.max(1, Math.min(5, rating || 5)),
+            text: text,
+            images: images,
+            status: "pending",
+            source: "customer",
+            clientId: getReviewClientId(),
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+        };
+
+        store.reviews.push(review);
+        saveStoreRaw(store);
+
+        // Render instantly so customer sees feedback without network delay.
+        renderReviewList(activeProduct.id, store);
+
+        // Prefer shared admin sync utility when available; fallback to direct page sync.
+        // Sync is intentionally non-blocking for faster UX.
+        if (window.AdminStore && typeof window.AdminStore.syncToCloud === "function") {
+            window.AdminStore.syncToCloud().catch(function (err) {
+                console.warn("AdminStore cloud sync failed for review submission.", err);
+            });
+        } else {
+            pushStoreToCloud(store).catch(function (err) {
+                console.warn("Fallback cloud sync failed for review submission.", err);
+            });
+        }
+
+        if (nameEl) nameEl.value = authorName;
+        if (textEl) textEl.value = "";
+        if (ratingEl) ratingEl.value = "5";
+        setPendingImageList([]);
+        var panel = document.getElementById("reviewFormPanel");
+        var icon = document.getElementById("reviewFormToggleIcon");
+        if (panel) panel.style.display = "none";
+        if (icon) icon.className = "fas fa-chevron-down";
+        alert("Thanks! Your review was submitted successfully.");
+    }
+
+    function bindReviewFormEvents() {
+        var form = document.getElementById("customerReviewForm");
+        if (!form || form.dataset.bound === "1") return;
+
+        form.dataset.bound = "1";
+        form.addEventListener("submit", function (event) {
+            event.preventDefault();
+            submitCustomerReview();
+        });
+
+        form.addEventListener("change", function (event) {
+            var target = event.target;
+            if (target && target.id === "reviewerImages") {
+                handleReviewerImageSelection(target);
+            }
+        });
+
+        form.addEventListener("click", function (event) {
+            var btn = event.target.closest("button[data-remove-review-image]");
+            if (!btn) return;
+
+            var idx = parseInt(btn.getAttribute("data-remove-review-image"), 10);
+            var images = getPendingImageList();
+            if (Number.isInteger(idx) && idx >= 0 && idx < images.length) {
+                images.splice(idx, 1);
+                setPendingImageList(images);
+            }
+        });
+
+        var toggleBtn = document.getElementById("reviewFormToggle");
+        if (toggleBtn) {
+            toggleBtn.addEventListener("click", function () {
+                var panel = document.getElementById("reviewFormPanel");
+                var icon = document.getElementById("reviewFormToggleIcon");
+                if (!panel) return;
+
+                var open = panel.style.display === "block";
+                panel.style.display = open ? "none" : "block";
+                if (icon) {
+                    icon.className = open ? "fas fa-chevron-down" : "fas fa-chevron-up";
+                }
+            });
         }
     }
 
@@ -203,11 +565,32 @@
 
     function bindDetailEvents() {
         document.addEventListener("click", function (e) {
+            var lightboxOverlay = e.target.closest("#imageLightbox");
+            if (lightboxOverlay) {
+                if (e.target.closest("#lightboxClose") || e.target === lightboxOverlay) {
+                    closeLightbox();
+                }
+                return;
+            }
+
+            if (e.target.closest("#lightboxClose")) {
+                closeLightbox();
+                return;
+            }
+
             var thumb = e.target.closest(".thumb-item");
             if (thumb) {
                 var thumbIndex = parseInt(thumb.getAttribute("data-index"), 10);
                 if (Number.isInteger(thumbIndex)) {
+                    openLightbox(thumb.getAttribute("data-src") || thumb.getAttribute("src") || "", thumb.getAttribute("alt") || "Product image");
                     setGalleryIndex(thumbIndex, true);
+                }
+            }
+
+            if (e.target.closest("#mainDetailImage")) {
+                var mainImage = document.getElementById("mainDetailImage");
+                if (mainImage && mainImage.getAttribute("src")) {
+                    openLightbox(mainImage.getAttribute("src"), activeProduct && activeProduct.name ? activeProduct.name : "Product image");
                 }
             }
 
@@ -258,6 +641,12 @@
                 stopGalleryAutoSlide();
             } else {
                 startGalleryAutoSlide();
+            }
+        });
+
+        document.addEventListener("keydown", function (event) {
+            if (event.key === "Escape") {
+                closeLightbox();
             }
         });
     }
@@ -410,6 +799,10 @@
             '</div>'
         ].join("");
         document.getElementById("relatedProducts").innerHTML = "";
+        var reviewsSection = document.getElementById("productReviewsSection");
+        if (reviewsSection) reviewsSection.style.display = "none";
+        var reviewList = document.getElementById("reviewList");
+        if (reviewList) reviewList.innerHTML = '<div class="text-muted">No product selected.</div>';
     }
 
     function normalizeText(value) {
@@ -717,13 +1110,18 @@
             '</div>'
         ].join("\n");
 
+        var reviewsSection = document.getElementById("productReviewsSection");
+        if (reviewsSection) reviewsSection.style.display = "block";
+
         initGallery(gallery);
 
+        renderReviewList(product.id, store);
         renderRelatedProducts(product, store);
     }
 
     async function initPage() {
         await pullStoreFromCloud();
+        await startCloudStoreListener();
         var store = readStoreRaw();
         var productId = getProductIdFromUrl();
         if (!productId) {
@@ -745,6 +1143,7 @@
     }
 
     bindDetailEvents();
+    bindReviewFormEvents();
     initPage();
 })();
 

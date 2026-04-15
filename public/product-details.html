@@ -161,6 +161,53 @@
       .thumb-item.active {
         border-color: #f85606;
       }
+      .d2w-lightbox {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: rgba(15, 23, 42, 0.88);
+        z-index: 2000;
+      }
+      .d2w-lightbox.open {
+        display: flex;
+      }
+      .d2w-lightbox-inner {
+        position: relative;
+        max-width: min(94vw, 1080px);
+        max-height: 92vh;
+      }
+      .d2w-lightbox-img {
+        display: block;
+        max-width: 100%;
+        max-height: 92vh;
+        object-fit: contain;
+        border-radius: 14px;
+        background: #fff;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+      }
+      .d2w-lightbox-close {
+        position: absolute;
+        top: -14px;
+        right: -14px;
+        width: 40px;
+        height: 40px;
+        border: 0;
+        border-radius: 999px;
+        background: #fff;
+        color: #111827;
+        font-size: 20px;
+        line-height: 1;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+      }
+      .d2w-lightbox-caption {
+        margin-top: 10px;
+        color: #e5e7eb;
+        text-align: center;
+        font-size: 14px;
+      }
       .price-line {
         display: flex;
         align-items: center;
@@ -216,6 +263,79 @@
       }
       .related-wrap {
         margin-top: 24px;
+      }
+      .reviews-wrap {
+        margin-top: 20px;
+        display: none;
+      }
+      .reviews-panel {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 16px;
+      }
+      .review-form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .review-form-toggle {
+        border: 1px solid #f85606;
+        color: #f85606;
+        background: #fff7f1;
+        border-radius: 8px;
+        padding: 9px 12px;
+        font-weight: 600;
+        font-size: 14px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .review-form-panel {
+        display: none;
+        margin-top: 12px;
+      }
+      .review-sync-note {
+        display: none;
+        margin-top: 8px;
+        color: #166534;
+        background: #ecfdf5;
+        border: 1px solid #bbf7d0;
+        border-radius: 8px;
+        padding: 7px 10px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .review-list {
+        margin-top: 14px;
+      }
+      .review-item {
+        border: 1px solid #ebeef4;
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 10px;
+        background: #fff;
+      }
+      .review-meta {
+        color: #6b7280;
+        font-size: 13px;
+      }
+      .review-rating {
+        color: #f59e0b;
+        letter-spacing: 1px;
+      }
+      .review-images {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-top: 8px;
+      }
+      .review-images img {
+        width: 68px;
+        height: 68px;
+        border-radius: 8px;
+        border: 1px solid #d1d5db;
+        object-fit: cover;
       }
       .related-grid {
         display: grid;
@@ -385,6 +505,9 @@
         .cta-row {
           flex-direction: column;
         }
+        .review-form-grid {
+          grid-template-columns: 1fr;
+        }
         .related-grid {
           grid-template-columns: repeat(2, 1fr);
         }
@@ -496,10 +619,74 @@
 
       <div id="productDetailRoot" class="detail-card"></div>
 
+      <section id="productReviewsSection" class="reviews-wrap">
+        <div class="reviews-panel">
+          <h4 class="mb-3">Product Reviews</h4>
+          <p class="text-muted mb-3" style="font-size: 14px">
+            See what customers say and share your own experience.
+          </p>
+
+          <button type="button" id="reviewFormToggle" class="review-form-toggle">
+            <i class="fas fa-chevron-down" id="reviewFormToggleIcon"></i>
+            Write A Review
+          </button>
+
+          <div id="reviewSyncNote" class="review-sync-note">Updated just now</div>
+
+          <div id="reviewFormPanel" class="review-form-panel">
+            <form id="customerReviewForm" class="mb-3" novalidate>
+              <div class="review-form-grid">
+                <div class="form-group mb-2">
+                  <label for="reviewerName">Your Name *</label>
+                  <input id="reviewerName" class="form-control" type="text" required />
+                </div>
+                <div class="form-group mb-2">
+                  <label for="reviewerRating">Rating *</label>
+                  <select id="reviewerRating" class="form-control" required>
+                    <option value="5">5 - Excellent</option>
+                    <option value="4">4 - Good</option>
+                    <option value="3">3 - Average</option>
+                    <option value="2">2 - Poor</option>
+                    <option value="1">1 - Bad</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group mb-2">
+                <label for="reviewerText">Your Review *</label>
+                <textarea id="reviewerText" class="form-control" rows="3" required></textarea>
+              </div>
+
+              <div class="form-group mb-2">
+                <label for="reviewerImages">Add Photos (optional)</label>
+                <input id="reviewerImages" class="form-control" type="file" accept="image/*" multiple style="font-size: 12px" />
+                <small class="text-muted">You can upload multiple review photos.</small>
+              </div>
+              <input type="hidden" id="reviewerImageData" value="[]" />
+              <div id="reviewerImagePreview" class="review-images" style="display: none"></div>
+
+              <button type="submit" class="btn btn-primary btn-sm mt-2">
+                <i class="fas fa-paper-plane"></i> Submit Review
+              </button>
+            </form>
+          </div>
+
+          <div id="reviewList" class="review-list"></div>
+        </div>
+      </section>
+
       <section class="related-wrap">
         <h4 class="mb-3">Related Products</h4>
         <div id="relatedProducts" class="related-grid"></div>
       </section>
+    </div>
+
+    <div id="imageLightbox" class="d2w-lightbox" aria-hidden="true">
+      <div class="d2w-lightbox-inner">
+        <button type="button" class="d2w-lightbox-close" id="lightboxClose" aria-label="Close image">&times;</button>
+        <img id="lightboxImage" class="d2w-lightbox-img" src="" alt="Product image" />
+        <div id="lightboxCaption" class="d2w-lightbox-caption"></div>
+      </div>
     </div>
 
     <footer class="d2w-footer mt-3">
@@ -596,6 +783,7 @@
     <script src="frontend/lib/easing/easing.min.js"></script>
     <script src="frontend/lib/owlcarousel/owl.carousel.min.js"></script>
     <script src="frontend/js/admin-store.js"></script>
+    <script src="frontend/js/clean-url.js"></script>
     <script src="frontend/js/main.js"></script>
     <script src="frontend/js/product-details.js"></script>
   </body>
