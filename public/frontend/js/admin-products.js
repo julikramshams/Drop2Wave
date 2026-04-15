@@ -3,21 +3,14 @@
  */
 
 $(document).ready(async function() {
-    const isNestedProductsPage = window.location.pathname.toLowerCase().indexOf('/admin/products/') !== -1;
-    const loginPath = isNestedProductsPage ? '../login.html' : 'login.html';
-
     // Check authentication
     if (!AdminStore.isAuthenticated()) {
-        window.location.href = loginPath;
+        window.location.href = 'login.html';
         return;
     }
     
     const $newProdForm = $('#newProductForm');
     const $totalProdForm = $('#totalProductForm');
-    const $productFormPanel = $('#productFormPanel');
-    const $openProductFormBtn = $('#openProductFormBtn');
-    const $closeProductFormBtn = $('#closeProductFormBtn');
-    const $productSearchInput = $('#productSearchInput');
     const $status = $('#statusMessage');
     
     await AdminStore.syncFromCloud();
@@ -26,100 +19,9 @@ $(document).ready(async function() {
     loadNewProducts();
     loadTotalProducts();
     initRichTextEditors();
-    setupProductPanelToggle();
-    setupProductSearch();
     setupNewProductHandler();
     setupTotalProductHandler();
     setupLogout();
-    startLiveStoreListener();
-
-    function getProductSearchTerm() {
-        return String($productSearchInput.val() || '').trim().toLowerCase();
-    }
-
-    function productMatchesSearch(product, searchTerm) {
-        if (!searchTerm) return true;
-
-        const haystack = [
-            product.name,
-            product.id,
-            product.categoryId,
-            getCategoryNameById(product.categoryId),
-            product.productUrl,
-            product.brand,
-            product.slug,
-            product.sku,
-            product.description,
-            product.price,
-            product.oldPrice,
-            product.sortOrder,
-            product.stock,
-            product.quantity
-        ].map(value => String(value || '').toLowerCase()).join(' ');
-
-        return haystack.includes(searchTerm);
-    }
-
-    function setupProductPanelToggle() {
-        if (!$productFormPanel.length) return;
-
-        const setPanelState = (isOpen) => {
-            $productFormPanel.toggleClass('d-none', !isOpen);
-            $openProductFormBtn.attr('aria-expanded', String(isOpen));
-            if (isOpen) {
-                const firstField = $productFormPanel.find('input, select, textarea').filter(':visible').first();
-                window.requestAnimationFrame(() => {
-                    $productFormPanel[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    if (firstField.length) firstField.trigger('focus');
-                });
-            }
-        };
-
-        $(document).on('click', '#openProductFormBtn', function() {
-            setPanelState(true);
-        });
-
-        $(document).on('click', '#closeProductFormBtn', function() {
-            setPanelState(false);
-        });
-
-        if (window.location.hash === '#newProductForm' || window.location.hash === '#totalProductForm') {
-            setPanelState(true);
-        }
-    }
-
-    function setupProductSearch() {
-        if (!$productSearchInput.length) return;
-
-        $(document).on('input', '#productSearchInput', function() {
-            loadNewProducts();
-            loadTotalProducts();
-        });
-    }
-
-    async function startLiveStoreListener() {
-        try {
-            const ready = await AdminStore.ensureCloudReady();
-            if (!ready) return;
-
-            const ref = AdminStore.getCloudDocRef();
-            if (!ref) return;
-
-            ref.onSnapshot((snap) => {
-                if (!snap || !snap.exists) return;
-                const payload = snap.data() || {};
-                const cloudStore = AdminStore.normalizeStoreShape(payload.store || {});
-                localStorage.setItem(AdminStore.STORE_KEY, JSON.stringify(cloudStore));
-                loadCategoryOptions();
-                loadNewProducts();
-                loadTotalProducts();
-            }, (err) => {
-                console.warn('Live product listener failed.', err);
-            });
-        } catch (err) {
-            console.warn('Unable to start live product listener.', err);
-        }
-    }
 
     function isQuotaExceededError(err) {
         if (!err) return false;
@@ -343,10 +245,8 @@ $(document).ready(async function() {
     }
     
     function loadNewProducts() {
-        const searchTerm = getProductSearchTerm();
         const products = AdminStore.getProducts()
             .filter(p => p.isNew === true)
-            .filter(p => productMatchesSearch(p, searchTerm))
             .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
         const $table = $('#newProductTableBody');
         
@@ -375,10 +275,8 @@ $(document).ready(async function() {
     }
     
     function loadTotalProducts() {
-        const searchTerm = getProductSearchTerm();
         const products = AdminStore.getProducts()
             .filter(p => p.isNew !== true)
-            .filter(p => productMatchesSearch(p, searchTerm))
             .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
         const $table = $('#totalProductTableBody');
         
@@ -732,7 +630,7 @@ $(document).ready(async function() {
         $(document).on('click', '#logoutBtn', function() {
             if (confirm('Logout from admin panel?')) {
                 AdminStore.clearSession();
-                window.location.href = loginPath;
+                window.location.href = 'login.html';
             }
         });
     }

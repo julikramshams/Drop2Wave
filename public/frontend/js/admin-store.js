@@ -31,8 +31,7 @@ const AdminStore = {
                     { id: 'cat6', slug: 'man-watches', name: 'Man Watches', image: '' },
                     { id: 'cat7', slug: 'home-living', name: 'Home Living', image: '' }
                 ],
-                products: [],
-                reviews: []
+                products: []
             }));
         }
     },
@@ -41,7 +40,7 @@ const AdminStore = {
     getStore() {
         this.ensureStore();
         const store = localStorage.getItem(this.STORE_KEY);
-        return this.normalizeStoreShape(store ? JSON.parse(store) : { categories: [], products: [], reviews: [] });
+        return store ? JSON.parse(store) : { categories: [], products: [] };
     },
     
     // Save store object
@@ -58,7 +57,6 @@ const AdminStore = {
         const normalized = store && typeof store === 'object' ? store : {};
         if (!Array.isArray(normalized.categories)) normalized.categories = [];
         if (!Array.isArray(normalized.products)) normalized.products = [];
-        if (!Array.isArray(normalized.reviews)) normalized.reviews = [];
         return normalized;
     },
 
@@ -242,59 +240,6 @@ const AdminStore = {
     deleteMultipleProducts(ids) {
         const store = this.getStore();
         store.products = store.products.filter(p => !ids.includes(p.id));
-        store.reviews = (store.reviews || []).filter(r => !ids.includes(r.productId));
-        this.saveStore(store);
-    },
-
-    // ===================
-    // REVIEW OPERATIONS
-    // ===================
-
-    getReviews() {
-        return this.getStore().reviews || [];
-    },
-
-    addReview(review) {
-        const store = this.getStore();
-        if (!store.reviews) store.reviews = [];
-
-        const nextReview = {
-            id: review.id || ('rev_' + Date.now() + '_' + Math.floor(Math.random() * 1000)),
-            productId: String(review.productId || ''),
-            authorName: String(review.authorName || 'Anonymous'),
-            rating: Number(review.rating || 5),
-            text: String(review.text || ''),
-            images: Array.isArray(review.images) ? review.images.filter(Boolean) : [],
-            status: review.status || 'pending',
-            source: review.source || 'customer',
-            clientId: review.clientId || '',
-            createdAt: review.createdAt || Date.now(),
-            updatedAt: Date.now()
-        };
-
-        store.reviews.push(nextReview);
-        this.saveStore(store);
-        return nextReview;
-    },
-
-    updateReview(id, updates) {
-        const store = this.getStore();
-        const index = (store.reviews || []).findIndex(r => String(r.id) === String(id));
-        if (index === -1) return null;
-
-        store.reviews[index] = {
-            ...store.reviews[index],
-            ...updates,
-            updatedAt: Date.now()
-        };
-
-        this.saveStore(store);
-        return store.reviews[index];
-    },
-
-    deleteReview(id) {
-        const store = this.getStore();
-        store.reviews = (store.reviews || []).filter(r => String(r.id) !== String(id));
         this.saveStore(store);
     },
     

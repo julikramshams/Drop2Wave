@@ -18,9 +18,6 @@ function readOrdersRaw() {
 function saveOrdersRaw(data) {
     try {
         localStorage.setItem('drop2wave_orders_v1', JSON.stringify(data));
-        if (window.UniversalData && typeof window.UniversalData.pushOrdersFromLocal === 'function') {
-            window.UniversalData.pushOrdersFromLocal().catch(() => {});
-        }
         return true;
     } catch (e) {
         console.error('Error saving orders:', e);
@@ -28,41 +25,14 @@ function saveOrdersRaw(data) {
     }
 }
 
-function removeOrderLocalOnly(orderId) {
-    try {
-        const data = readOrdersRaw();
-        data.orders = (data.orders || []).filter(o => String(o.orderId) !== String(orderId));
-        localStorage.setItem('drop2wave_orders_v1', JSON.stringify(data));
-    } catch (e) {
-        console.warn('Failed to rollback local order after universal sync failure.', e);
-    }
-}
-
 class OrderManager {
     static generateOrderId() {
-        const orders = this.getAllOrders();
-        const used = new Set((orders || []).map(o => String(o.invoiceNumber || o.orderId || '').replace(/\D/g, '').slice(-6)).filter(v => /^\d{6}$/.test(v)));
-
-        for (let i = 0; i < 3000; i += 1) {
-            const candidate = String(Math.floor(100000 + Math.random() * 900000));
-            if (!used.has(candidate)) return candidate;
-        }
-
-        return String(Math.floor(100000 + Math.random() * 900000));
+        return 'ORD-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
     }
 
     static createOrder(customerData, cartItems, deliveryCharge, subtotal, total) {
-        const sanitizeOrderImage = (rawImage) => {
-            const value = String(rawImage || '').trim();
-            // Data URLs make order storage huge over time. Keep listing fast by not persisting them.
-            if (!value || value.startsWith('data:image/')) return '';
-            return value;
-        };
-
-        const invoiceNo = this.generateOrderId();
         const order = {
-            orderId: invoiceNo,
-            invoiceNumber: invoiceNo,
+            orderId: this.generateOrderId(),
             orderDate: new Date().toISOString(),
             orderTimestamp: Date.now(),
             orderTime: new Date().toLocaleString('bn-BD', {
@@ -90,7 +60,7 @@ class OrderManager {
                 price: item.price,
                 quantity: item.quantity,
                 total: item.price * item.quantity,
-                image: sanitizeOrderImage(item.image),
+                image: item.image || null,
                 categoryId: item.categoryId
             })),
 
@@ -102,12 +72,12 @@ class OrderManager {
             },
 
             // Order Status
-            status: 'new', // new, complete, no_response, hold, cancelled, in_courier, delivered
+            status: 'confirmed', // confirmed, processing, shipped, delivered, cancelled
             statusHistory: [
                 {
-                    status: 'new',
+                    status: 'confirmed',
                     timestamp: new Date().toLocaleString('bn-BD'),
-                    note: 'New order received'
+                    note: 'অর্ডার গ্রহণ করা হয়েছে'
                 }
             ]
         };
@@ -136,13 +106,11 @@ class OrderManager {
         
         if (order) {
             const statusMap = {
-                'new': 'New order received',
-                'complete': 'Customer verified and order confirmed',
-                'no_response': 'Customer did not answer call',
-                'hold': 'Order put on hold',
-                'cancelled': 'Order cancelled by customer',
-                'in_courier': 'Order sent to courier',
-                'delivered': 'Order delivered successfully'
+                'confirmed': 'অর্ডার গ্রহণ করা হয়েছে',
+                'processing': 'প্রক্রিয়াকরণ চলছে',
+                'shipped': 'পণ্য পাঠানো হয়েছে',
+                'delivered': 'পণ্য ডেলিভারি করা হয়েছে',
+                'cancelled': 'অর্ডার বাতিল করা হয়েছে'
             };
 
             order.status = newStatus;
@@ -163,131 +131,6 @@ class OrderManager {
         return saveOrdersRaw(orders);
     }
 }
-
-const IncompleteOrderTracker = {
-    KEY: 'drop2wave_incomplete_orders_v1',
-    SESSION_ID_KEY: 'drop2wave_checkout_draft_id',
-
-    getSessionId() {
-        let id = sessionStorage.getItem(this.SESSION_ID_KEY);
-        if (!id) {
-            id = 'inc_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
-            sessionStorage.setItem(this.SESSION_ID_KEY, id);
-        }
-        return id;
-    },
-
-    readList() {
-        try {
-            const parsed = JSON.parse(localStorage.getItem(this.KEY) || '[]');
-            return Array.isArray(parsed) ? parsed : [];
-        } catch (e) {
-            return [];
-        }
-    },
-
-    saveList(list) {
-        localStorage.setItem(this.KEY, JSON.stringify(Array.isArray(list) ? list : []));
-    },
-
-    getPayload() {
-        const cartItems = getCartItemsFromStorage();
-        const name = String(document.getElementById('customerName')?.value || '').trim();
-        const phone = String(document.getElementById('customerPhone')?.value || '').trim();
-        const address = String(document.getElementById('customerAddress')?.value || '').trim();
-        const deliveryArea = String(document.getElementById('deliveryCharge')?.value || '');
-        const notes = String(document.getElementById('specialNotes')?.value || '').trim();
-
-        return {
-            id: this.getSessionId(),
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-            customer: {
-                name,
-                phone,
-                address,
-                deliveryArea,
-                specialNotes: notes
-            },
-            items: cartItems.map(item => ({
-                id: item.id,
-                name: item.name,
-                quantity: Number(item.quantity || 0) || 0,
-                price: Number(item.price || 0) || 0
-            }))
-        };
-    },
-
-    hasMeaningfulDraft(payload) {
-        const c = payload.customer || {};
-        const typedAny = Boolean(c.name || c.phone || c.address || c.specialNotes);
-        const hasItems = Array.isArray(payload.items) && payload.items.length > 0;
-        return typedAny && hasItems;
-    },
-
-    upsertDraft() {
-        const payload = this.getPayload();
-        const list = this.readList();
-        const idx = list.findIndex(item => String(item.id) === String(payload.id));
-
-        if (!this.hasMeaningfulDraft(payload)) {
-            if (idx !== -1) {
-                list.splice(idx, 1);
-                this.saveList(list);
-            }
-            return;
-        }
-
-        if (idx === -1) {
-            list.push(payload);
-        } else {
-            payload.createdAt = Number(list[idx].createdAt || payload.createdAt);
-            list[idx] = payload;
-        }
-
-        // Keep storage bounded.
-        list.sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
-        this.saveList(list.slice(0, 300));
-        if (window.UniversalData && typeof window.UniversalData.pushIncompleteFromLocal === 'function') {
-            window.UniversalData.pushIncompleteFromLocal().catch(() => {});
-        }
-    },
-
-    removeCurrentDraft() {
-        const id = this.getSessionId();
-        const list = this.readList().filter(item => String(item.id) !== String(id));
-        this.saveList(list);
-        sessionStorage.removeItem(this.SESSION_ID_KEY);
-        if (window.UniversalData && typeof window.UniversalData.pushIncompleteFromLocal === 'function') {
-            window.UniversalData.pushIncompleteFromLocal().catch(() => {});
-        }
-    },
-
-    setup() {
-        const run = () => this.upsertDraft();
-        const debounced = (() => {
-            let t = null;
-            return () => {
-                clearTimeout(t);
-                t = setTimeout(run, 250);
-            };
-        })();
-
-        ['customerName', 'customerPhone', 'customerAddress', 'specialNotes', 'deliveryCharge'].forEach(id => {
-            const el = document.getElementById(id);
-            if (!el) return;
-            el.addEventListener('input', debounced);
-            el.addEventListener('change', debounced);
-        });
-
-        window.addEventListener('beforeunload', run);
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'hidden') run();
-        });
-
-        run();
-    }
-};
 
 // ============ Checkout Page Functions ============
 
@@ -421,7 +264,7 @@ function removeCheckoutItem(itemId) {
 
 function updateCheckoutSummary(subtotal) {
     const deliveryChargeSelect = document.getElementById('deliveryCharge');
-    const deliveryCharge = parseInt(deliveryChargeSelect?.value || 70);
+    const deliveryCharge = parseInt(deliveryChargeSelect?.value || 60);
     const total = subtotal + deliveryCharge;
 
     // Update form field
@@ -489,7 +332,7 @@ function setupFormSubmission() {
     });
 }
 
-async function processOrder() {
+function processOrder() {
     if (!validateCheckoutForm()) return;
 
     try {
@@ -514,13 +357,13 @@ async function processOrder() {
             name: document.getElementById('customerName').value.trim(),
             phone: document.getElementById('customerPhone').value.trim(),
             address: document.getElementById('customerAddress').value.trim(),
-            deliveryArea: document.getElementById('deliveryCharge')?.value || '70'
+            deliveryArea: document.getElementById('deliveryCharge')?.value || 'dhaka-60'
         };
 
         // Use stored checkout data
         const checkoutData = window.checkoutData || {
             subtotal: cartItems.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0),
-            deliveryCharge: parseInt(document.getElementById('deliveryCharge')?.value || 70),
+            deliveryCharge: parseInt(document.getElementById('deliveryCharge')?.value || 60),
             total: 0
         };
         checkoutData.total = checkoutData.subtotal + checkoutData.deliveryCharge;
@@ -538,38 +381,8 @@ async function processOrder() {
         const orderSaved = OrderManager.addOrder(order);
 
         if (orderSaved) {
-            const hasUniversal = window.UniversalData && typeof window.UniversalData.pushOrdersFromLocal === 'function';
-            if (!hasUniversal) {
-                removeOrderLocalOnly(order.orderId);
-                alert('Universal order sync is unavailable. Please try again.');
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-                return;
-            }
-
-            if (typeof window.UniversalData.ensureCloudReady === 'function') {
-                const ready = await window.UniversalData.ensureCloudReady().catch(() => false);
-                if (!ready) {
-                    removeOrderLocalOnly(order.orderId);
-                    alert('Cloud connection failed. Order was not saved universally.');
-                    btn.disabled = false;
-                    btn.innerHTML = originalText;
-                    return;
-                }
-            }
-
-            const pushed = await window.UniversalData.pushOrdersFromLocal().catch(() => false);
-            if (!pushed) {
-                removeOrderLocalOnly(order.orderId);
-                alert('Could not save order to universal storage. Please try again.');
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-                return;
-            }
-
             // Clear cart
             localStorage.removeItem('drop2wave_cart_v1');
-            IncompleteOrderTracker.removeCurrentDraft();
 
             // Show success message
             setTimeout(() => {
@@ -600,7 +413,7 @@ function showSuccessMessage(order) {
             </div>
             <h2 style="color: #155724; margin-bottom: 10px;">অর্ডার সফলভাবে সম্পন্ন!</h2>
             <p style="color: #155724; margin-bottom: 15px; font-size: 16px;">
-                ইনভয়েস নম্বর: <strong>${order.invoiceNumber || order.orderId}</strong>
+                অর্ডার নম্বর: <strong>${order.orderId}</strong>
             </p>
             <p style="color: #155724; margin-bottom: 20px; font-size: 14px;">
                 ${order.orderTime}
@@ -646,9 +459,5 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     initCheckoutPage();
-    if (window.UniversalData && typeof window.UniversalData.pullIncompleteToLocal === 'function') {
-        window.UniversalData.pullIncompleteToLocal().catch(() => {});
-    }
-    IncompleteOrderTracker.setup();
 });
 
