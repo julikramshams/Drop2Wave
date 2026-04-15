@@ -18,14 +18,6 @@
     var activeCategorySlugs = [];
     var categoryNameBySlug = {};
 
-    function getCategoryBrowsePath() {
-        var path = (window.location.pathname || "").toLowerCase();
-        if (path.indexOf("category-products") !== -1 && path.indexOf(".html") === -1) {
-            return "category-products";
-        }
-        return "category-products.html";
-    }
-
     function parseMoney(raw) {
         var cleaned = String(raw || "").replace(/[^\d.]/g, "");
         var n = parseFloat(cleaned);
@@ -79,18 +71,16 @@
             .map(function (x) { return String(x || "").trim().toLowerCase(); })
             .filter(Boolean);
 
-        var basePath = getCategoryBrowsePath();
-
         if (!clean.length) {
-            return basePath + "#allProductsGrid";
+            return "category-products.html#allProductsGrid";
         }
 
-        return basePath + "?category=" + encodeURIComponent(clean.join(",")) + "#allProductsGrid";
+        return "category-products.html?category=" + encodeURIComponent(clean.join(",")) + "#allProductsGrid";
     }
 
     function isCategoryBrowsePage() {
         var path = (window.location.pathname || "").toLowerCase();
-        return /category-products(\.html)?$/.test(path);
+        return path.indexOf("category-products.html") !== -1;
     }
 
     function ensureCategoryFilterBar() {
@@ -408,7 +398,7 @@
             '          </div>',
             '      </div>',
             '      <div class="card-footer justify-content-between bg-light border" style="padding:0;">',
-            '          <form name="form" method="POST" action="add-to-cart" enctype="multipart/form-data">',
+            '          <form name="form" method="POST" action="https://radifshop.com/add-to-cart" enctype="multipart/form-data">',
             '              <input type="text" name="product_id" value="' + escapeHtml(productId) + '" hidden>',
             '              <input type="text" name="qty" value="1" hidden>',
             '              <button type="submit" class="btn btn-info btn-sm btn-block text-dark" style="color: white !important;box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);">অর্ডার করুন</button>',
@@ -558,7 +548,7 @@
         $(document).on("click", "#d2wClearCategoryFilter", function () {
             activeCategorySlugs = [];
             if (window.history && window.history.replaceState) {
-                window.history.replaceState(null, "", getCategoryBrowsePath() + "#allProductsGrid");
+                window.history.replaceState(null, "", "category-products.html#allProductsGrid");
             }
             renderStorefrontFromAdmin();
         });
