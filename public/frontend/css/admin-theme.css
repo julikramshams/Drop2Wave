@@ -142,6 +142,40 @@ h1, h2, h3, h4, h5, h6 {
   transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
 
+.side-nav .nav-group-toggle {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.side-nav .nav-caret {
+  margin-left: auto;
+  font-size: 12px;
+  transition: transform 0.2s ease;
+}
+
+.side-nav .nav-group.open .nav-caret {
+  transform: rotate(180deg);
+}
+
+.side-nav .nav-submenu {
+  display: none;
+  gap: 4px;
+  margin-top: 4px;
+  padding-left: 16px;
+}
+
+.side-nav .nav-group.open .nav-submenu {
+  display: block;
+}
+
+.side-nav .nav-sublink {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  font-size: 12px;
+}
+
 .side-nav .nav-link:hover,
 .side-nav .nav-link.active {
   background: #22c55e;
@@ -298,6 +332,11 @@ h6 {
   justify-content: center;
   padding-left: 0;
   padding-right: 0;
+}
+
+.admin-layout.sidebar-collapsed .side-nav .nav-caret,
+.admin-layout.sidebar-collapsed .side-nav .nav-submenu {
+  display: none !important;
 }
 
 .admin-layout.sidebar-collapsed .side-nav .nav-icon {

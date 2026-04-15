@@ -6,6 +6,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Manage Orders - Admin</title>
+    <link rel="canonical" href="orders.html?view=all">
 
     <!-- Google Web Fonts -->
     <link rel="preconnect" href="https://fonts.gstatic.com">
@@ -63,15 +64,15 @@
                 <div class="row mb-4">
                     <div class="col-12">
                         <div class="admin-header">
-                            <h1><i class="fas fa-shopping-bag"></i> অর্ডার ম্যানেজমেন্ট</h1>
-                            <p style="margin: 10px 0 0 0; opacity: 0.9;">সব অর্ডার দেখুন, ফিল্টার করুন, আর স্ট্যাটাস আপডেট করুন</p>
+                            <h1 id="ordersPageTitle"><i class="fas fa-shopping-bag"></i> All Orders</h1>
+                            <p id="ordersPageSubtitle" style="margin: 10px 0 0 0; opacity: 0.9;">Master control page for all incoming orders.</p>
                         </div>
                     </div>
                 </div>
 
                 <div class="mb-3" style="display:flex;gap:8px;flex-wrap:wrap;">
                     <a href="index.html" class="btn btn-outline-secondary btn-sm"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
-                    <a href="products.html" class="btn btn-outline-secondary btn-sm"><i class="fas fa-box-open"></i> Products</a>
+                    <a href="products/manage.html" class="btn btn-outline-secondary btn-sm"><i class="fas fa-box-open"></i> Products</a>
                     <a href="reviews.html" class="btn btn-outline-warning btn-sm"><i class="fas fa-star"></i> Reviews</a>
                 </div>
 
@@ -79,42 +80,44 @@
                 <div class="stats-row" id="statsRow">
                     <div class="stat-card">
                         <div class="stat-value" id="totalOrders">0</div>
-                        <div class="stat-label">মোট অর্ডার</div>
+                        <div class="stat-label">Total Orders</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-value" id="confirmedOrders">0</div>
-                        <div class="stat-label">কনফার্মড</div>
+                        <div class="stat-label">New Orders</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-value" id="shippedOrders">0</div>
-                        <div class="stat-label">শিপড</div>
+                        <div class="stat-label">Complete Orders</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-value" id="deliveredOrders">0</div>
-                        <div class="stat-label">ডেলিভারড</div>
+                        <div class="stat-label">In Courier</div>
                     </div>
                 </div>
 
                 <!-- Filter Section -->
-                <div class="filter-section">
+                <div class="filter-section" id="filterSection">
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="filterStatus">স্ট্যাটাস ফিল্টার:</label>
+                                <label for="filterStatus">Status Filter:</label>
                                 <select id="filterStatus" class="form-control form-control-sm">
-                                    <option value="">সব স্ট্যাটাস</option>
-                                    <option value="confirmed">কনফার্মড</option>
-                                    <option value="processing">প্রসেসিং</option>
-                                    <option value="shipped">শিপড</option>
-                                    <option value="delivered">ডেলিভারড</option>
-                                    <option value="cancelled">ক্যানসেলড</option>
+                                    <option value="">All Status</option>
+                                    <option value="new">New</option>
+                                    <option value="complete">Complete</option>
+                                    <option value="no_response">No Response</option>
+                                    <option value="hold">Hold</option>
+                                    <option value="cancelled">Cancelled</option>
+                                    <option value="in_courier">In Courier</option>
+                                    <option value="delivered">Delivered</option>
                                 </select>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="searchOrders">সার্চ:</label>
-                                <input type="text" class="form-control form-control-sm" id="searchOrders" placeholder="নাম, ফোন, বা অর্ডার আইডি দিয়ে খুঁজুন...">
+                                <label for="searchOrders">Search:</label>
+                                <input type="text" class="form-control form-control-sm" id="searchOrders" placeholder="Search by name, phone, or order id...">
                             </div>
                         </div>
                     </div>
@@ -124,8 +127,8 @@
                 <div id="ordersContainer">
                     <div class="empty-state">
                         <i class="fas fa-inbox"></i>
-                        <h3>কোনো অর্ডার নেই</h3>
-                        <p>এখনও কোনো অর্ডার পাওয়া যায়নি</p>
+                        <h3>No orders yet</h3>
+                        <p>No customer orders have been placed so far.</p>
                     </div>
                 </div>
             </main>
